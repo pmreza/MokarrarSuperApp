@@ -8,6 +8,7 @@ interface ModalProps {
   description?: string
   children: React.ReactNode
   maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl"
+  size?: "sm" | "md" | "lg" | "xl" | "2xl"
 }
 
 export const Modal: React.FC<ModalProps> = ({
@@ -16,8 +17,10 @@ export const Modal: React.FC<ModalProps> = ({
   title,
   description,
   children,
-  maxWidth = "lg",
+  maxWidth,
+  size,
 }) => {
+  const effectiveSize = size || maxWidth || "lg"
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose()
@@ -40,7 +43,7 @@ export const Modal: React.FC<ModalProps> = ({
     lg: "max-w-lg",
     xl: "max-w-xl",
     "2xl": "max-w-2xl",
-  }[maxWidth]
+  }[effectiveSize]
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">

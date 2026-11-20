@@ -39,6 +39,49 @@ async def list_transactions(current_user: CurrentUser) -> list[dict[str, Any]]:
     return await inventree_adapter.get_transactions()
 
 
+@router.get("/scan/{code}")
+async def scan_barcode_or_qr(code: str, current_user: CurrentUser) -> dict[str, Any]:
+    """
+    Rapid Barcode / QR Scanner endpoint for warehouse workers and mobile users.
+    Accepts IPN, Part ID, or scanned barcode string and returns real-time inventory balance.
+    """
+    parts = await inventree_adapter.get_parts()
+    clean_code = code.strip().upper()
+
+    for p in parts:
+        ipn = (p.get("IPN") or "").strip().upper()
+        p_id = str(p.get("id") or "").strip().upper()
+        if clean_code in (ipn, p_id) or clean_code == f"MOK-{p_id}":
+            stock = p.get("total_in_stock", 0)
+            min_stock = p.get("minimum_stock", 0)
+            return {
+                "found": True,
+                "part": p,
+                "is_low_stock": stock <= min_stock,
+                "scan_code": code,
+                "message": f"قطعه «{p.get('name')}» با موفقیت شناسایی شد.",
+            }
+
+    # Partial match fallback
+    for p in parts:
+        if clean_code in (p.get("IPN") or "").upper() or clean_code in (p.get("name") or "").upper():
+            return {
+                "found": True,
+                "part": p,
+                "is_low_stock": p.get("total_in_stock", 0) <= p.get("minimum_stock", 0),
+                "scan_code": code,
+                "message": f"قطعه مشابه «{p.get('name')}» شناسایی شد.",
+            }
+
+    return {
+        "found": False,
+        "part": None,
+        "is_low_stock": False,
+        "scan_code": code,
+        "message": f"بارکد «{code}» در سامانه انبارداری کارخانه مکرر ثبت نشده است.",
+    }
+
+
 @router.post("/stock-in", status_code=status.HTTP_201_CREATED)
 async def stock_in(req: StockInRequest, current_user: WarehouseUser) -> dict[str, Any]:
     """Record physical entry of parts into the warehouse."""

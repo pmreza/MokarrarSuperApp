@@ -1,15 +1,9 @@
 import React, { useEffect, useState } from "react"
 import {
-  ShoppingCart,
   Plus,
   RefreshCw,
   CheckCircle2,
-  XCircle,
   CreditCard,
-  Building,
-  DollarSign,
-  FileSpreadsheet,
-  ArrowRight,
 } from "lucide-react"
 import { DataTable, type Column } from "@/components/ui/DataTable"
 import { StatusBadge } from "@/components/ui/StatusBadge"
@@ -74,7 +68,7 @@ export const ProcurementView: React.FC = () => {
   const handleMarkPaid = async (id: string) => {
     try {
       toast.info("در حال پرداخت، ایجاد تسک در Plane و ارسال وبهوک به n8n...")
-      const res = await api.procurement.markPaid(id)
+      await api.procurement.markPaid(id)
       toast.success("پرداخت ثبت شد! تسک تحویل کالا در Plane ایجاد و وبهوک n8n با موفقیت شلیک شد.")
       loadRequests()
       if (selectedReq?.id === id) setSelectedReq(null)

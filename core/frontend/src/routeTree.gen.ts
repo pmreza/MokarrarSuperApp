@@ -15,13 +15,17 @@ import { Route as RecoverPasswordRouteImport } from './routes/recover-password'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
-import { Route as LayoutTasksRouteImport } from './routes/_layout/tasks'
-import { Route as LayoutProcurementRouteImport } from './routes/_layout/procurement'
-import { Route as LayoutInventoryRouteImport } from './routes/_layout/inventory'
-import { Route as LayoutReportsRouteImport } from './routes/_layout/reports'
 import { Route as LayoutAdminRouteImport } from './routes/_layout/admin'
+import { Route as LayoutBaleBotRouteImport } from './routes/_layout/bale-bot'
+import { Route as LayoutGatepassRouteImport } from './routes/_layout/gatepass'
+import { Route as LayoutInventoryRouteImport } from './routes/_layout/inventory'
 import { Route as LayoutItemsRouteImport } from './routes/_layout/items'
+import { Route as LayoutMaintenanceRouteImport } from './routes/_layout/maintenance'
+import { Route as LayoutProcurementRouteImport } from './routes/_layout/procurement'
+import { Route as LayoutProductionRouteImport } from './routes/_layout/production'
+import { Route as LayoutReportsRouteImport } from './routes/_layout/reports'
 import { Route as LayoutSettingsRouteImport } from './routes/_layout/settings'
+import { Route as LayoutTasksRouteImport } from './routes/_layout/tasks'
 
 const LayoutRoute = LayoutRouteImport.update({
   id: '/_layout',
@@ -52,14 +56,19 @@ const LayoutIndexRoute = LayoutIndexRouteImport.update({
   path: '/',
   getParentRoute: () => LayoutRoute,
 } as any)
-const LayoutTasksRoute = LayoutTasksRouteImport.update({
-  id: '/tasks',
-  path: '/tasks',
+const LayoutAdminRoute = LayoutAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => LayoutRoute,
 } as any)
-const LayoutProcurementRoute = LayoutProcurementRouteImport.update({
-  id: '/procurement',
-  path: '/procurement',
+const LayoutBaleBotRoute = LayoutBaleBotRouteImport.update({
+  id: '/bale-bot',
+  path: '/bale-bot',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutGatepassRoute = LayoutGatepassRouteImport.update({
+  id: '/gatepass',
+  path: '/gatepass',
   getParentRoute: () => LayoutRoute,
 } as any)
 const LayoutInventoryRoute = LayoutInventoryRouteImport.update({
@@ -67,19 +76,29 @@ const LayoutInventoryRoute = LayoutInventoryRouteImport.update({
   path: '/inventory',
   getParentRoute: () => LayoutRoute,
 } as any)
-const LayoutReportsRoute = LayoutReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => LayoutRoute,
-} as any)
-const LayoutAdminRoute = LayoutAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => LayoutRoute,
-} as any)
 const LayoutItemsRoute = LayoutItemsRouteImport.update({
   id: '/items',
   path: '/items',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutMaintenanceRoute = LayoutMaintenanceRouteImport.update({
+  id: '/maintenance',
+  path: '/maintenance',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutProcurementRoute = LayoutProcurementRouteImport.update({
+  id: '/procurement',
+  path: '/procurement',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutProductionRoute = LayoutProductionRouteImport.update({
+  id: '/production',
+  path: '/production',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutReportsRoute = LayoutReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
   getParentRoute: () => LayoutRoute,
 } as any)
 const LayoutSettingsRoute = LayoutSettingsRouteImport.update({
@@ -87,20 +106,29 @@ const LayoutSettingsRoute = LayoutSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => LayoutRoute,
 } as any)
+const LayoutTasksRoute = LayoutTasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => LayoutRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof LayoutIndexRoute
-  '/tasks': typeof LayoutTasksRoute
-  '/procurement': typeof LayoutProcurementRoute
-  '/inventory': typeof LayoutInventoryRoute
-  '/reports': typeof LayoutReportsRoute
   '/login': typeof LoginRoute
   '/recover-password': typeof RecoverPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/admin': typeof LayoutAdminRoute
+  '/bale-bot': typeof LayoutBaleBotRoute
+  '/gatepass': typeof LayoutGatepassRoute
+  '/inventory': typeof LayoutInventoryRoute
   '/items': typeof LayoutItemsRoute
+  '/maintenance': typeof LayoutMaintenanceRoute
+  '/procurement': typeof LayoutProcurementRoute
+  '/production': typeof LayoutProductionRoute
+  '/reports': typeof LayoutReportsRoute
   '/settings': typeof LayoutSettingsRoute
+  '/tasks': typeof LayoutTasksRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -108,13 +136,17 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
   '/admin': typeof LayoutAdminRoute
-  '/items': typeof LayoutItemsRoute
-  '/settings': typeof LayoutSettingsRoute
-  '/': typeof LayoutIndexRoute
-  '/tasks': typeof LayoutTasksRoute
-  '/procurement': typeof LayoutProcurementRoute
+  '/bale-bot': typeof LayoutBaleBotRoute
+  '/gatepass': typeof LayoutGatepassRoute
   '/inventory': typeof LayoutInventoryRoute
+  '/items': typeof LayoutItemsRoute
+  '/maintenance': typeof LayoutMaintenanceRoute
+  '/procurement': typeof LayoutProcurementRoute
+  '/production': typeof LayoutProductionRoute
   '/reports': typeof LayoutReportsRoute
+  '/settings': typeof LayoutSettingsRoute
+  '/tasks': typeof LayoutTasksRoute
+  '/': typeof LayoutIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -123,30 +155,38 @@ export interface FileRoutesById {
   '/recover-password': typeof RecoverPasswordRoute
   '/reset-password': typeof ResetPasswordRoute
   '/signup': typeof SignupRoute
-  '/_layout/': typeof LayoutIndexRoute
-  '/_layout/tasks': typeof LayoutTasksRoute
-  '/_layout/procurement': typeof LayoutProcurementRoute
-  '/_layout/inventory': typeof LayoutInventoryRoute
-  '/_layout/reports': typeof LayoutReportsRoute
   '/_layout/admin': typeof LayoutAdminRoute
+  '/_layout/bale-bot': typeof LayoutBaleBotRoute
+  '/_layout/gatepass': typeof LayoutGatepassRoute
+  '/_layout/inventory': typeof LayoutInventoryRoute
   '/_layout/items': typeof LayoutItemsRoute
+  '/_layout/maintenance': typeof LayoutMaintenanceRoute
+  '/_layout/procurement': typeof LayoutProcurementRoute
+  '/_layout/production': typeof LayoutProductionRoute
+  '/_layout/reports': typeof LayoutReportsRoute
   '/_layout/settings': typeof LayoutSettingsRoute
+  '/_layout/tasks': typeof LayoutTasksRoute
+  '/_layout/': typeof LayoutIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/tasks'
-    | '/procurement'
-    | '/inventory'
-    | '/reports'
     | '/login'
     | '/recover-password'
     | '/reset-password'
     | '/signup'
     | '/admin'
+    | '/bale-bot'
+    | '/gatepass'
+    | '/inventory'
     | '/items'
+    | '/maintenance'
+    | '/procurement'
+    | '/production'
+    | '/reports'
     | '/settings'
+    | '/tasks'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -154,13 +194,17 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/signup'
     | '/admin'
-    | '/items'
-    | '/settings'
-    | '/'
-    | '/tasks'
-    | '/procurement'
+    | '/bale-bot'
+    | '/gatepass'
     | '/inventory'
+    | '/items'
+    | '/maintenance'
+    | '/procurement'
+    | '/production'
     | '/reports'
+    | '/settings'
+    | '/tasks'
+    | '/'
   id:
     | '__root__'
     | '/_layout'
@@ -168,14 +212,18 @@ export interface FileRouteTypes {
     | '/recover-password'
     | '/reset-password'
     | '/signup'
-    | '/_layout/'
-    | '/_layout/tasks'
-    | '/_layout/procurement'
-    | '/_layout/inventory'
-    | '/_layout/reports'
     | '/_layout/admin'
+    | '/_layout/bale-bot'
+    | '/_layout/gatepass'
+    | '/_layout/inventory'
     | '/_layout/items'
+    | '/_layout/maintenance'
+    | '/_layout/procurement'
+    | '/_layout/production'
+    | '/_layout/reports'
     | '/_layout/settings'
+    | '/_layout/tasks'
+    | '/_layout/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -230,18 +278,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutIndexRouteImport
       parentRoute: typeof LayoutRoute
     }
-    '/_layout/tasks': {
-      id: '/_layout/tasks'
-      path: '/tasks'
-      fullPath: '/tasks'
-      preLoaderRoute: typeof LayoutTasksRouteImport
+    '/_layout/admin': {
+      id: '/_layout/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof LayoutAdminRouteImport
       parentRoute: typeof LayoutRoute
     }
-    '/_layout/procurement': {
-      id: '/_layout/procurement'
-      path: '/procurement'
-      fullPath: '/procurement'
-      preLoaderRoute: typeof LayoutProcurementRouteImport
+    '/_layout/bale-bot': {
+      id: '/_layout/bale-bot'
+      path: '/bale-bot'
+      fullPath: '/bale-bot'
+      preLoaderRoute: typeof LayoutBaleBotRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/gatepass': {
+      id: '/_layout/gatepass'
+      path: '/gatepass'
+      fullPath: '/gatepass'
+      preLoaderRoute: typeof LayoutGatepassRouteImport
       parentRoute: typeof LayoutRoute
     }
     '/_layout/inventory': {
@@ -251,25 +306,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutInventoryRouteImport
       parentRoute: typeof LayoutRoute
     }
-    '/_layout/reports': {
-      id: '/_layout/reports'
-      path: '/reports'
-      fullPath: '/reports'
-      preLoaderRoute: typeof LayoutReportsRouteImport
-      parentRoute: typeof LayoutRoute
-    }
-    '/_layout/admin': {
-      id: '/_layout/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof LayoutAdminRouteImport
-      parentRoute: typeof LayoutRoute
-    }
     '/_layout/items': {
       id: '/_layout/items'
       path: '/items'
       fullPath: '/items'
       preLoaderRoute: typeof LayoutItemsRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/maintenance': {
+      id: '/_layout/maintenance'
+      path: '/maintenance'
+      fullPath: '/maintenance'
+      preLoaderRoute: typeof LayoutMaintenanceRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/procurement': {
+      id: '/_layout/procurement'
+      path: '/procurement'
+      fullPath: '/procurement'
+      preLoaderRoute: typeof LayoutProcurementRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/production': {
+      id: '/_layout/production'
+      path: '/production'
+      fullPath: '/production'
+      preLoaderRoute: typeof LayoutProductionRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/reports': {
+      id: '/_layout/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof LayoutReportsRouteImport
       parentRoute: typeof LayoutRoute
     }
     '/_layout/settings': {
@@ -279,29 +348,44 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LayoutSettingsRouteImport
       parentRoute: typeof LayoutRoute
     }
+    '/_layout/tasks': {
+      id: '/_layout/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
+      preLoaderRoute: typeof LayoutTasksRouteImport
+      parentRoute: typeof LayoutRoute
+    }
   }
 }
 
 interface LayoutRouteChildren {
-  LayoutIndexRoute: typeof LayoutIndexRoute
-  LayoutTasksRoute: typeof LayoutTasksRoute
-  LayoutProcurementRoute: typeof LayoutProcurementRoute
-  LayoutInventoryRoute: typeof LayoutInventoryRoute
-  LayoutReportsRoute: typeof LayoutReportsRoute
   LayoutAdminRoute: typeof LayoutAdminRoute
+  LayoutBaleBotRoute: typeof LayoutBaleBotRoute
+  LayoutGatepassRoute: typeof LayoutGatepassRoute
+  LayoutInventoryRoute: typeof LayoutInventoryRoute
   LayoutItemsRoute: typeof LayoutItemsRoute
+  LayoutMaintenanceRoute: typeof LayoutMaintenanceRoute
+  LayoutProcurementRoute: typeof LayoutProcurementRoute
+  LayoutProductionRoute: typeof LayoutProductionRoute
+  LayoutReportsRoute: typeof LayoutReportsRoute
   LayoutSettingsRoute: typeof LayoutSettingsRoute
+  LayoutTasksRoute: typeof LayoutTasksRoute
+  LayoutIndexRoute: typeof LayoutIndexRoute
 }
 
 const LayoutRouteChildren: LayoutRouteChildren = {
-  LayoutIndexRoute: LayoutIndexRoute,
-  LayoutTasksRoute: LayoutTasksRoute,
-  LayoutProcurementRoute: LayoutProcurementRoute,
-  LayoutInventoryRoute: LayoutInventoryRoute,
-  LayoutReportsRoute: LayoutReportsRoute,
   LayoutAdminRoute: LayoutAdminRoute,
+  LayoutBaleBotRoute: LayoutBaleBotRoute,
+  LayoutGatepassRoute: LayoutGatepassRoute,
+  LayoutInventoryRoute: LayoutInventoryRoute,
   LayoutItemsRoute: LayoutItemsRoute,
+  LayoutMaintenanceRoute: LayoutMaintenanceRoute,
+  LayoutProcurementRoute: LayoutProcurementRoute,
+  LayoutProductionRoute: LayoutProductionRoute,
+  LayoutReportsRoute: LayoutReportsRoute,
   LayoutSettingsRoute: LayoutSettingsRoute,
+  LayoutTasksRoute: LayoutTasksRoute,
+  LayoutIndexRoute: LayoutIndexRoute,
 }
 
 const LayoutRouteWithChildren =

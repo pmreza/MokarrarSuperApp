@@ -1,6 +1,6 @@
 import React from "react"
 import { useLocation, useNavigate } from "@tanstack/react-router"
-import { Search, Bell, User, LogOut, ShieldCheck, ChevronDown } from "lucide-react"
+import { Search, Bell, LogOut } from "lucide-react"
 import { NAVIGATION_CONFIG } from "@/config/navigation.config"
 
 export const Header: React.FC = () => {

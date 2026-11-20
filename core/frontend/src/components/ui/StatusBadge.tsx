@@ -30,6 +30,15 @@ const STATUS_COLOR_MAP: Record<string, { bg: string; text: string; dot: string; 
   // Inventory
   STOCK_IN: { bg: "bg-emerald-50", text: "text-emerald-800", dot: "bg-emerald-600", label: "ورود به انبار" },
   STOCK_OUT: { bg: "bg-orange-50", text: "text-orange-800", dot: "bg-orange-600", label: "خروج از انبار" },
+
+  // Maintenance & PM
+  OPEN: { bg: "bg-rose-50", text: "text-rose-700", dot: "bg-rose-600", label: "توقف فعال" },
+  RESOLVED: { bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-600", label: "رفع نقص" },
+  CLOSED: { bg: "bg-slate-100", text: "text-slate-700", dot: "bg-slate-500", label: "بسته شده" },
+
+  // Gate Pass & Production
+  COMPLETED: { bg: "bg-emerald-50", text: "text-emerald-800", dot: "bg-emerald-600", label: "تکمیل شده" },
+  FLAGGED: { bg: "bg-amber-50", text: "text-amber-800", dot: "bg-amber-600", label: "نیازمند بررسی" },
 }
 
 export const StatusBadge: React.FC<StatusBadgeProps> = ({ status, label, className = "" }) => {

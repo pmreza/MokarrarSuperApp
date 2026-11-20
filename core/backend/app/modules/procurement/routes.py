@@ -13,6 +13,7 @@ from app.modules.procurement.models import (
 )
 from app.adapters.plane_adapter import plane_adapter
 from app.adapters.n8n_adapter import n8n_adapter
+from app.adapters.sms_adapter import sms_adapter
 
 router = APIRouter(prefix="/procurement", tags=["Procurement & Approvals (Phase 2)"])
 
@@ -164,7 +165,12 @@ async def approve_purchase_request(
     action_req: ApprovalActionRequest,
     current_user: ManagerUser,
 ) -> dict[str, Any]:
-    """Approve purchase request (Requires Manager or Admin role)."""
+    """
+    Tiered Financial Approval Matrix:
+    - Tier 1 (<= 50M Rials): Direct Manager Approval
+    - Tier 2 (> 50M and <= 500M Rials): Plant Operations Approval
+    - Tier 3 (> 500M Rials): Executive CEO / Board Approval required
+    """
     pr = None
     for r in MOCK_PRS:
         if str(r["id"]) == str(request_id):
@@ -173,13 +179,36 @@ async def approve_purchase_request(
     if not pr:
         raise HTTPException(status_code=404, detail="Purchase request not found")
 
+    total_cost = pr.get("total_estimated_cost", 0.0)
+    user_role = getattr(current_user, "role", "manager")
+
+    # High-value PR check: if cost > 500M and user is not admin, advance to PENDING_CEO
+    if total_cost > 500_000_000 and user_role != "admin" and pr["status"] != "PENDING_CEO":
+        pr["status"] = "PENDING_CEO"
+        note = f"تأیید مرحله اول توسط {current_user.full_name or 'مدیر فنی'}. جهت تأیید نهایی مالی به مدیرعامل ارجاع شد."
+        pr["manager_note"] = note
+        pr["approvals"].append(
+            {
+                "approver_name": current_user.full_name or current_user.email,
+                "action": "TIER1_APPROVE",
+                "comment": action_req.comment or note,
+                "timestamp": datetime.now(UTC).strftime("%Y/%m/%d %H:%M"),
+            }
+        )
+        # Notify CEO via SMS/Mock
+        await sms_adapter.send_sms(
+            receptor="09121000000",
+            message=f"مکرر: درخواست خرید کلان {pr['request_number']} با مبلغ {int(total_cost):,} ریال نیازمند تایید نهایی مدیرعامل است.",
+        )
+        return {"status": "pending_ceo", "message": "درخواست به دلیل سقف مالی بالا به کارتابل مدیرعامل ارجاع شد.", "request": pr}
+
     pr["status"] = PRStatus.APPROVED.value
-    pr["manager_note"] = action_req.comment or "تایید گردید."
+    pr["manager_note"] = action_req.comment or "تایید نهایی گردید."
     pr["approvals"].append(
         {
             "approver_name": current_user.full_name or current_user.email,
-            "action": "APPROVE",
-            "comment": action_req.comment or "درخواست توسط مدیریت تایید شد.",
+            "action": "FINAL_APPROVE",
+            "comment": action_req.comment or "درخواست توسط مدیریت تایید نهایی شد.",
             "timestamp": datetime.now(UTC).strftime("%Y/%m/%d %H:%M"),
         }
     )

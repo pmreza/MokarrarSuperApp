@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from "react"
 import {
   Kanban,
-  CheckCircle2,
   Clock,
   AlertTriangle,
   ShoppingCart,
-  Warehouse,
-  TrendingUp,
-  ArrowUpRight,
   RefreshCw,
   FileSpreadsheet,
+  Factory,
+  Wrench,
+  Truck,
+  Bot,
 } from "lucide-react"
+import { Link } from "@tanstack/react-router"
 import { StatCard } from "@/components/ui/StatCard"
 import { StatusBadge } from "@/components/ui/StatusBadge"
 import { api } from "@/services/api"
@@ -199,6 +200,83 @@ export const DashboardView: React.FC = () => {
               <p className="text-xs text-slate-400 text-center py-6">موجودی تمام اقلام بالاتر از حد مجاز است.</p>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Factory Floor & Operational Hub */}
+      <div className="bg-slate-900 text-white rounded-2xl p-6 shadow-md border border-slate-800 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+          <div>
+            <h3 className="text-base font-bold flex items-center gap-2">
+              <Factory className="w-5 h-5 text-indigo-400" />
+              <span>پایش بلادرنگ سالن‌های تولید و ماژول‌های میدانی کارخانه</span>
+            </h3>
+            <p className="text-xs text-slate-400 mt-0.5">
+              وضعیت زنده‌ی خطوط ۱ تا ۴، گزارشات توقف PM، برگه خروج و بات بله کارگران
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-xs font-semibold text-emerald-400">سامانه متصل و آماده</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+          <Link
+            to="/maintenance"
+            className="p-3.5 bg-slate-800/80 hover:bg-slate-800 rounded-xl border border-slate-700/80 transition-all group block"
+          >
+            <div className="flex items-center justify-between">
+              <Wrench className="w-5 h-5 text-rose-400 group-hover:scale-110 transition-transform" />
+              <span className="text-[10px] px-1.5 py-0.5 bg-rose-500/20 text-rose-300 rounded font-bold">
+                PM & توقف
+              </span>
+            </div>
+            <h4 className="text-xs font-bold text-white mt-2">تعمیرات و توقف خط</h4>
+            <p className="text-[11px] text-slate-400 mt-0.5">اعزام فوری تکنسین و ثبت MTTR</p>
+          </Link>
+
+          <Link
+            to="/production"
+            className="p-3.5 bg-slate-800/80 hover:bg-slate-800 rounded-xl border border-slate-700/80 transition-all group block"
+          >
+            <div className="flex items-center justify-between">
+              <Factory className="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform" />
+              <span className="text-[10px] px-1.5 py-0.5 bg-indigo-500/20 text-indigo-300 rounded font-bold">
+                شیفت ۳ نوبته
+              </span>
+            </div>
+            <h4 className="text-xs font-bold text-white mt-2">تولید و کنترل ضایعات</h4>
+            <p className="text-[11px] text-slate-400 mt-0.5">راندمان خطوط و کارکرد شیفت‌ها</p>
+          </Link>
+
+          <Link
+            to="/gatepass"
+            className="p-3.5 bg-slate-800/80 hover:bg-slate-800 rounded-xl border border-slate-700/80 transition-all group block"
+          >
+            <div className="flex items-center justify-between">
+              <Truck className="w-5 h-5 text-amber-400 group-hover:scale-110 transition-transform" />
+              <span className="text-[10px] px-1.5 py-0.5 bg-amber-500/20 text-amber-300 rounded font-bold">
+                حراست
+              </span>
+            </div>
+            <h4 className="text-xs font-bold text-white mt-2">برگه خروج کالا (Gate Pass)</h4>
+            <p className="text-[11px] text-slate-400 mt-0.5">احراز QR در گیت حراست درب اصلی</p>
+          </Link>
+
+          <Link
+            to="/bale-bot"
+            className="p-3.5 bg-slate-800/80 hover:bg-slate-800 rounded-xl border border-slate-700/80 transition-all group block"
+          >
+            <div className="flex items-center justify-between">
+              <Bot className="w-5 h-5 text-emerald-400 group-hover:scale-110 transition-transform" />
+              <span className="text-[10px] px-1.5 py-0.5 bg-emerald-500/20 text-emerald-300 rounded font-bold">
+                پیام‌رسان
+              </span>
+            </div>
+            <h4 className="text-xs font-bold text-white mt-2">بات بله پرسنل کارخانه</h4>
+            <p className="text-[11px] text-slate-400 mt-0.5">اتصال موبایل کارگران بدون نیاز به سیستم</p>
+          </Link>
         </div>
       </div>
 

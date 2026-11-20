@@ -44,6 +44,15 @@ class Settings(BaseSettings):
     N8N_PR_PAID_WEBHOOK_PATH: str = "/webhook/mokarrar-pr-paid"
     N8N_PLANE_TASK_DONE_PATH: str = "/webhook/mokarrar-plane-task-done"
 
+    # Iranian Messenger & Operational Bot (Bale)
+    BALE_BOT_TOKEN: str | None = None
+    BALE_BOT_WEBHOOK_SECRET: str = "mokarrar_bale_secret_2026"
+    BALE_API_URL: str = "https://tapi.bale.ai"
+
+    # SMS Gateway (Kavenegar / Industrial SMS)
+    KAVENEGAR_API_KEY: str | None = None
+    SMS_SENDER_NUMBER: str = "10008000"
+
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def _use_psycopg_driver(cls, value: str | PostgresDsn) -> str:

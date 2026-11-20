@@ -1,4 +1,4 @@
-import axios, { type AxiosRequestConfig } from "axios"
+import axios from "axios"
 
 const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000"
 
@@ -157,12 +157,95 @@ export const api = {
       const res = await apiClient.get("/inventory/stats/kpi")
       return res.data
     },
+    scan: async (code: string) => {
+      const res = await apiClient.get(`/inventory/scan/${encodeURIComponent(code)}`)
+      return res.data
+    },
   },
 
   // Dashboard Executive KPIs
   dashboard: {
     getKpis: async () => {
       const res = await apiClient.get("/dashboard/kpis")
+      return res.data
+    },
+  },
+
+  // Line Maintenance & Emergency PM
+  maintenance: {
+    getStats: async () => {
+      const res = await apiClient.get("/maintenance/stats")
+      return res.data
+    },
+    listTickets: async () => {
+      const res = await apiClient.get("/maintenance/tickets")
+      return res.data
+    },
+    reportLineStop: async (data: {
+      line_number: number
+      machine_name: string
+      failure_type: string
+      priority: string
+      description: string
+      technician_phone?: string
+    }) => {
+      const res = await apiClient.post("/maintenance/tickets", data)
+      return res.data
+    },
+    resolveTicket: async (ticketId: string, data: { root_cause: string; downtime_minutes: number }) => {
+      const res = await apiClient.post(`/maintenance/tickets/${ticketId}/resolve`, data)
+      return res.data
+    },
+  },
+
+  // Factory Production & Shift Logs
+  production: {
+    getSummary: async () => {
+      const res = await apiClient.get("/production/summary")
+      return res.data
+    },
+    listLogs: async () => {
+      const res = await apiClient.get("/production/logs")
+      return res.data
+    },
+    createLog: async (data: {
+      shift_type: string
+      line_number: number
+      product_name: string
+      target_quantity: number
+      actual_quantity: number
+      scrap_quantity: number
+      notes?: string
+    }) => {
+      const res = await apiClient.post("/production/logs", data)
+      return res.data
+    },
+  },
+
+  // Gate Pass & Security Exit
+  gatepass: {
+    listPasses: async () => {
+      const res = await apiClient.get("/gatepass/passes")
+      return res.data
+    },
+    createPass: async (data: any) => {
+      const res = await apiClient.post("/gatepass/passes", data)
+      return res.data
+    },
+    verifyToken: async (token: string) => {
+      const res = await apiClient.get(`/gatepass/verify/${encodeURIComponent(token)}`)
+      return res.data
+    },
+  },
+
+  // Bale Messenger Bot Integration
+  bale: {
+    getStatus: async () => {
+      const res = await apiClient.get("/bots/bale/status")
+      return res.data
+    },
+    sendNotification: async (chat_id: string | number, text: string) => {
+      const res = await apiClient.post("/bots/bale/send", { chat_id, text })
       return res.data
     },
   },

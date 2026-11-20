@@ -9,7 +9,10 @@ import {
   ShieldAlert,
   Layers,
   Activity,
-  CheckCircle2,
+  Wrench,
+  Factory,
+  Truck,
+  Bot,
 } from "lucide-react"
 import { getFilteredNavigation, type NavigationItem } from "@/config/navigation.config"
 
@@ -20,6 +23,10 @@ const ICON_MAP: Record<string, React.FC<{ className?: string }>> = {
   Warehouse,
   FileSpreadsheet,
   ShieldAlert,
+  Wrench,
+  Factory,
+  Truck,
+  Bot,
 }
 
 export const Sidebar: React.FC = () => {

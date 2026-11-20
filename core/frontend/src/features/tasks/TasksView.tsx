@@ -8,8 +8,6 @@ import {
   User,
   Send,
   MessageSquare,
-  Tag,
-  CheckCircle2,
   Trash2,
 } from "lucide-react"
 import { KanbanBoard, type TaskItem } from "@/components/ui/KanbanBoard"

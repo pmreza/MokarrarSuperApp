@@ -4,7 +4,6 @@ import {
   FileText,
   Download,
   CheckCircle,
-  FileCheck,
   ShieldCheck,
   Sparkles,
 } from "lucide-react"

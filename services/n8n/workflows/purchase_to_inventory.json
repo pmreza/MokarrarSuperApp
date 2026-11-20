@@ -1,0 +1,227 @@
+{
+  "name": "Mokarrar Purchase-to-Inventory Orchestration (PR Paid -> Plane Task -> InvenTree Stock-In)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mokarrar-pr-paid",
+        "options": {}
+      },
+      "id": "11111111-1111-1111-1111-111111111111",
+      "name": "Webhook: Mokarrar PR Paid",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ],
+      "webhookId": "mokarrar-pr-paid"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare delivery task payload for Plane Task Management Engine\nconst body = $input.first().json.body || $input.first().json;\n\nconst requestId = body.request_id || 'REQ-UNKNOWN';\nconst requestNumber = body.request_number || 'PR-1405-AUTO';\nconst requester = body.requester_name || 'کارشناس واحد متقاضی';\nconst items = body.items || [];\n\nconst itemsSummary = items.map((it, idx) => `${idx + 1}. ${it.item_name} (${it.quantity} ${it.unit || 'عدد'})`).join('<br/>');\n\nconst title = `تحویل و انبارش اقلام سفارش ${requestNumber}`;\nconst descriptionHtml = `<p><strong>درخواست خرید ${requestNumber} پرداخت گردید.</strong></p><p>متقاضی: ${requester}</p><p><strong>اقلام جهت تحویل به انبار مرکزی:</strong></p><p>${itemsSummary}</p>`;\n\nreturn {\n  json: {\n    request_id: requestId,\n    request_number: requestNumber,\n    task_title: title,\n    task_description_html: descriptionHtml,\n    items: items,\n    requester: requester,\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "22222222-2222-2222-2222-222222222222",
+      "name": "Transform & Prepare Task",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://mokarrar-backend:8000/api/v1/tasks/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"title\": \"{{ $json.task_title }}\",\n  \"description\": \"تحویل کالای سفارش {{ $json.request_number }} به انبار مرکزی مکرر\",\n  \"priority\": \"high\",\n  \"state\": \"todo\",\n  \"assignee_name\": \"حمید حسینی (انباردار مرکزی)\",\n  \"due_date\": \"1405/03/25\",\n  \"tags\": [\"تحویل_کالا\", \"تدارکات\", \"{{ $json.request_number }}\"]\n}",
+        "options": {}
+      },
+      "id": "33333333-3333-3333-3333-333333333333",
+      "name": "Plane: Create Delivery Task",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mokarrar-plane-task-done",
+        "options": {}
+      },
+      "id": "44444444-4444-4444-4444-444444444444",
+      "name": "Webhook: Plane Task Marked Done",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        550
+      ],
+      "webhookId": "mokarrar-plane-task-done"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://mokarrar-backend:8000/api/v1/webhooks/plane",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"id\": \"{{ $json.body.id || $json.body.issue_id || 'task-auto-01' }}\",\n  \"state\": \"done\",\n  \"assignee_name\": \"{{ $json.body.assignee_name || 'حمید حسینی' }}\",\n  \"metadata\": {{ JSON.stringify($json.body.metadata || {}) }}\n}",
+        "options": {}
+      },
+      "id": "55555555-5555-5555-5555-555555555555",
+      "name": "Mokarrar: Enforce Idempotency & Stock-In",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        450,
+        550
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-1",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "processed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "66666666-6666-6666-6666-666666666666",
+      "name": "Check Idempotency Status",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        700,
+        550
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://mokarrar-backend:8000/api/v1/webhooks/n8n",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"event\": \"workflow.completed\",\n  \"message\": \"Stock-In receipt registered in InvenTree and Purchase Request marked as DELIVERED.\",\n  \"details\": {{ JSON.stringify($json) }}\n}",
+        "options": {}
+      },
+      "id": "77777777-7777-7777-7777-777777777777",
+      "name": "Notify Mokarrar Success",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        950,
+        530
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook: Mokarrar PR Paid": {
+      "main": [
+        [
+          {
+            "node": "Transform & Prepare Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transform & Prepare Task": {
+      "main": [
+        [
+          {
+            "node": "Plane: Create Delivery Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook: Plane Task Marked Done": {
+      "main": [
+        [
+          {
+            "node": "Mokarrar: Enforce Idempotency & Stock-In",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mokarrar: Enforce Idempotency & Stock-In": {
+      "main": [
+        [
+          {
+            "node": "Check Idempotency Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Idempotency Status": {
+      "main": [
+        [
+          {
+            "node": "Notify Mokarrar Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Tehran"
+  },
+  "versionId": "mokarrar-orchestration-v1",
+  "id": "mokarrar-purchase-to-inventory"
+}

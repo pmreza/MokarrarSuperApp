@@ -1,0 +1,194 @@
+name: mokarrar
+
+networks:
+  mokarrar-net:
+    driver: bridge
+    name: mokarrar-net
+
+volumes:
+  mokarrar-db-data:
+  plane-redis-data:
+  inventree-data:
+  n8n-data:
+
+services:
+  # ========================================================
+  # 1. CORE DATABASE (PostgreSQL 16)
+  # ========================================================
+  mokarrar-db:
+    image: postgres:16-alpine
+    container_name: mokarrar-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-mokarrar}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mokarrar_secret_2026}
+    volumes:
+      - mokarrar-db-data:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    networks:
+      - mokarrar-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-mokarrar}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ========================================================
+  # 2. CORE GATEWAY & BFF (FastAPI)
+  # Public API port: 8000
+  # ========================================================
+  mokarrar-backend:
+    build:
+      context: ./core/backend
+      dockerfile: Dockerfile
+    container_name: mokarrar-backend
+    restart: unless-stopped
+    depends_on:
+      mokarrar-db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      FASTAPI_ENV: ${FASTAPI_ENV:-development}
+      PROJECT_NAME: "Mokarrar Enterprise Super App"
+      SECRET_KEY: ${SECRET_KEY:-mokarrar_super_secret_jwt_key_2026_xyz}
+      FIRST_SUPERUSER: ${FIRST_SUPERUSER:-admin@mokarrar.ir}
+      FIRST_SUPERUSER_PASSWORD: ${FIRST_SUPERUSER_PASSWORD:-Admin123456!}
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-mokarrar_secret_2026}@mokarrar-db:5432/${POSTGRES_DB:-mokarrar}
+      MOCK_EXTERNAL_SERVICES: ${MOCK_EXTERNAL_SERVICES:-true}
+      # Plane configuration (Phase 1)
+      PLANE_API_URL: ${PLANE_API_URL:-http://plane-api:8000}
+      PLANE_API_KEY: ${PLANE_API_KEY:-}
+      PLANE_WORKSPACE_SLUG: ${PLANE_WORKSPACE_SLUG:-mokarrar-corp}
+      PLANE_PROJECT_ID: ${PLANE_PROJECT_ID:-}
+      # InvenTree configuration (Phase 3)
+      INVENTREE_API_URL: ${INVENTREE_API_URL:-http://inventree-server:8000}
+      INVENTREE_API_TOKEN: ${INVENTREE_API_TOKEN:-}
+      # n8n configuration (Phase 2 & 3 Automation Glue)
+      N8N_WEBHOOK_URL: ${N8N_WEBHOOK_URL:-http://n8n:5678}
+      N8N_WEBHOOK_SECRET: ${N8N_WEBHOOK_SECRET:-mokarrar_hmac_secret_2026}
+    volumes:
+      - ./core/backend/app:/app/backend/app
+    networks:
+      - mokarrar-net
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/api/v1/utils/health-check/\")' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ========================================================
+  # 3. UNIFIED FRONTEND (React 19 + Vite + Tailwind + RTL)
+  # Public User Port: 3000
+  # ========================================================
+  mokarrar-frontend:
+    build:
+      context: ./core/frontend
+      dockerfile: Dockerfile
+    container_name: mokarrar-frontend
+    restart: unless-stopped
+    depends_on:
+      - mokarrar-backend
+    ports:
+      - "3000:3000"
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+    volumes:
+      - ./core/frontend/src:/app/src
+    networks:
+      - mokarrar-net
+
+  # ========================================================
+  # 4. TASK ENGINE (Plane - Headless Internal Admin)
+  # Bound ONLY to 127.0.0.1:8091 (Hidden from standard users)
+  # ========================================================
+  plane-redis:
+    image: redis:7-alpine
+    container_name: plane-redis
+    restart: unless-stopped
+    volumes:
+      - plane-redis-data:/data
+    networks:
+      - mokarrar-net
+    profiles:
+      - all
+      - plane
+
+  plane-api:
+    image: makeplane/plane-backend:v1.5.0
+    container_name: plane-api
+    restart: unless-stopped
+    depends_on:
+      - plane-redis
+      - mokarrar-db
+    ports:
+      - "127.0.0.1:8091:8000"
+    environment:
+      WEB_URL: "http://localhost:8091"
+      DATABASE_URL: "postgresql://postgres:${POSTGRES_PASSWORD:-mokarrar_secret_2026}@mokarrar-db:5432/plane"
+      REDIS_URL: "redis://plane-redis:6379/"
+      SECRET_KEY: ${SECRET_KEY:-mokarrar_super_secret_jwt_key_2026_xyz}
+    networks:
+      - mokarrar-net
+    profiles:
+      - all
+      - plane
+
+  # ========================================================
+  # 5. INVENTORY ENGINE (InvenTree - Headless Internal Admin)
+  # Bound ONLY to 127.0.0.1:8092 (Hidden from standard users)
+  # ========================================================
+  inventree-server:
+    image: inventree/inventree:latest
+    container_name: inventree-server
+    restart: unless-stopped
+    depends_on:
+      - mokarrar-db
+    ports:
+      - "127.0.0.1:8092:8000"
+    environment:
+      INVENTREE_DB_ENGINE: postgresql
+      INVENTREE_DB_NAME: ${INVENTREE_DB_NAME:-inventree}
+      INVENTREE_DB_HOST: mokarrar-db
+      INVENTREE_DB_PORT: 5432
+      INVENTREE_DB_USER: ${POSTGRES_USER:-postgres}
+      INVENTREE_DB_PASSWORD: ${POSTGRES_PASSWORD:-mokarrar_secret_2026}
+      INVENTREE_SECRET_KEY: ${SECRET_KEY:-mokarrar_super_secret_jwt_key_2026_xyz}
+      INVENTREE_SITE_URL: "http://localhost:8092"
+    volumes:
+      - inventree-data:/home/inventree/data
+    networks:
+      - mokarrar-net
+    profiles:
+      - all
+      - inventree
+
+  # ========================================================
+  # 6. WORKFLOW AUTOMATION ENGINE (n8n Official)
+  # Bound ONLY to 127.0.0.1:5678 (Internal workflow editor)
+  # ========================================================
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: mokarrar-n8n
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=false
+      - N8N_PORT=5678
+      - N8N_HOST=n8n
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://n8n:5678/
+      - GENERIC_TIMEZONE=Asia/Tehran
+      - TZ=Asia/Tehran
+      - N8N_DEFAULT_BINARY_DATA_MODE=filesystem
+    volumes:
+      - n8n-data:/home/node/.n8n
+      - ./services/n8n/workflows:/data/workflows
+    networks:
+      - mokarrar-net
+    profiles:
+      - all
+      - n8n

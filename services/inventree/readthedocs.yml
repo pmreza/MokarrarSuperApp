@@ -1,0 +1,17 @@
+version: 2
+
+# The documentation is built with Zensical, which ReadTheDocs does not support
+# natively, so a custom build is used. The output must be placed in
+# $READTHEDOCS_OUTPUT/html (see https://docs.readthedocs.com/platform/stable/build-customization.html)
+build:
+  os: "ubuntu-24.04"
+  tools:
+    python: "3.12"
+  commands:
+    - pip install -r docs/requirements.txt
+    - pip install -r src/backend/requirements.txt
+    - pip install -U invoke
+    # Generate the API schema and settings definitions, build the site and run the post-build checks
+    - invoke build-docs --build
+    - mkdir -p $READTHEDOCS_OUTPUT/html
+    - cp -r docs/site/. $READTHEDOCS_OUTPUT/html/

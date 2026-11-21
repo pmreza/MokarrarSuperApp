@@ -11,7 +11,7 @@ export default defineConfig({
     port: 3000,
   },
   build: {
-    outDir: "../backend/app/frontend",
+    outDir: "dist",
     emptyOutDir: true,
   },
   resolve: {

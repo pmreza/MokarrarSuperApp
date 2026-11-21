@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     N8N_WEBHOOK_SECRET: str = "mokarrar_hmac_secret_2026"
     N8N_PR_PAID_WEBHOOK_PATH: str = "/webhook/mokarrar-pr-paid"
     N8N_PLANE_TASK_DONE_PATH: str = "/webhook/mokarrar-plane-task-done"
+    BALE_BOT_TOKEN: str | None = None
 
     @field_validator("DATABASE_URL", mode="before")
     @classmethod

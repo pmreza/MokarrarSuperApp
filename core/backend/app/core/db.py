@@ -5,7 +5,12 @@ from app.core.config import settings
 from app.models import User, UserCreate
 
 connect_args = {"check_same_thread": False} if str(settings.DATABASE_URL).startswith("sqlite") else {}
-engine = create_engine(str(settings.DATABASE_URL), pool_pre_ping=True, connect_args=connect_args)
+try:
+    engine = create_engine(str(settings.DATABASE_URL), pool_pre_ping=True, connect_args=connect_args)
+except Exception as e:
+    import logging
+    logging.warning(f"Database engine init error: {e}. Falling back to local SQLite.")
+    engine = create_engine("sqlite:///./mokarrar.db", pool_pre_ping=True, connect_args={"check_same_thread": False})
 
 
 # make sure all SQLModel models are imported (app.models) before initializing DB

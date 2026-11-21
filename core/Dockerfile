@@ -16,7 +16,7 @@ ARG VITE_API_URL=
 RUN bun run build
 
 
-FROM python:3.14
+FROM python:3.12-slim
 
 ENV PYTHONUNBUFFERED=1
 
@@ -62,4 +62,4 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 WORKDIR /app/backend/
 
-CMD ["fastapi", "run", "--workers", "4"]
+CMD ["fastapi", "run", "--workers", "1", "--port", "8000"]

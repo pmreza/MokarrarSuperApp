@@ -1,11 +1,24 @@
-import React from "react"
+import React, { useState, useEffect } from "react"
 import { useLocation, useNavigate } from "@tanstack/react-router"
 import { Search, Bell, LogOut, ChevronLeft, Plus } from "lucide-react"
 import { NAVIGATION_CONFIG } from "@/config/navigation.config"
+import { CommandPalette } from "@/components/ui/CommandPalette"
 
 export const Header: React.FC = () => {
+  const [isPaletteOpen, setIsPaletteOpen] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault()
+        setIsPaletteOpen((prev) => !prev)
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [])
 
   // Find active nav config for dynamic title & breadcrumb
   const currentNav = NAVIGATION_CONFIG.find((item) => {
@@ -29,83 +42,95 @@ export const Header: React.FC = () => {
   }).format(new Date())
 
   return (
-    <header
-      className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-zinc-200 bg-white/95 px-6 backdrop-blur-xs shadow-xs"
-      dir="rtl"
-    >
-      {/* Dynamic Title & Breadcrumbs */}
-      <div className="flex items-center gap-3">
-        <div>
-          <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-            <span className="font-bold text-zinc-900">مکرر</span>
-            <ChevronLeft className="w-3.5 h-3.5 text-zinc-400" />
-            <span className="text-zinc-600 font-medium">{pageTitle}</span>
+    <>
+      <header
+        className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-zinc-200 bg-white/95 px-6 backdrop-blur-xs shadow-xs"
+        dir="rtl"
+      >
+        {/* Dynamic Title & Breadcrumbs */}
+        <div className="flex items-center gap-3">
+          <div>
+            <div className="flex items-center gap-1.5 text-xs text-zinc-400">
+              <span className="font-bold text-zinc-900">مکرر</span>
+              <ChevronLeft className="w-3.5 h-3.5 text-zinc-400" />
+              <span className="text-zinc-600 font-medium">{pageTitle}</span>
+            </div>
+            <h1 className="text-sm font-bold text-zinc-900 tracking-tight mt-0.5">
+              {pageTitle}
+            </h1>
           </div>
-          <h1 className="text-sm font-bold text-zinc-900 tracking-tight mt-0.5">
-            {pageTitle}
-          </h1>
+
+          <span className="hidden lg:inline-flex bg-zinc-100 px-2.5 py-1 rounded text-zinc-600 font-mono text-xs">
+            {todayPersian}
+          </span>
         </div>
 
-        <span className="hidden lg:inline-flex bg-zinc-100 px-2.5 py-1 rounded text-zinc-600 font-mono text-xs">
-          {todayPersian}
-        </span>
-      </div>
-
-      {/* Global Actions */}
-      <div className="flex items-center gap-3">
-        {/* Global Search Input */}
-        <div className="relative hidden md:block w-64">
-          <input
-            type="text"
-            placeholder="جستجو با Ctrl+K..."
-            className="w-full pr-9 pl-3 py-1.5 text-xs bg-zinc-50 border border-zinc-200 rounded-lg focus:outline-hidden focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all text-right"
-          />
-          <Search className="w-4 h-4 text-zinc-400 absolute right-2.5 top-2 pointer-events-none" />
-        </div>
-
-        {/* Notifications */}
-        <button
-          className="relative p-2 rounded-lg text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 transition-colors"
-          title="اعلان‌ها"
-        >
-          <Bell className="w-4 h-4" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-orange-500 ring-2 ring-white" />
-        </button>
-
-        {/* Action Button: Mokarrar Orange */}
-        <button
-          onClick={() => navigate({ to: "/tasks" })}
-          className="h-9 px-3.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm shadow-orange-500/20 transition-all active:scale-95"
-        >
-          <Plus className="w-4 h-4" />
-          <span>ثبت تسک / خرید</span>
-        </button>
-
-        <div className="h-4 w-px bg-zinc-200 mx-1 hidden sm:block" />
-
-        {/* User Profile & Logout */}
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-zinc-900 text-white flex items-center justify-center text-xs font-bold ring-2 ring-orange-500/30">
-            م
-          </div>
-          <div className="hidden sm:flex flex-col text-right">
-            <span className="text-xs font-semibold text-zinc-900 leading-tight">
-              مدیر ارشد مکرر
-            </span>
-            <span className="text-[10px] text-zinc-400 leading-tight">
-              سطح دسترسی: مدیرکل
-            </span>
-          </div>
-
-          <button
-            onClick={handleLogout}
-            className="p-1.5 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors mr-1"
-            title="خروج از سامانه"
+        {/* Global Actions */}
+        <div className="flex items-center gap-3">
+          {/* Global Search Input (Triggers Command Palette) */}
+          <div
+            onClick={() => setIsPaletteOpen(true)}
+            className="relative hidden md:flex items-center w-64 cursor-pointer"
           >
-            <LogOut className="w-4 h-4" />
+            <input
+              type="text"
+              readOnly
+              placeholder="جستجو با Ctrl+K..."
+              className="w-full pr-9 pl-12 py-1.5 text-xs bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 rounded-lg text-zinc-600 transition-all text-right cursor-pointer"
+            />
+            <Search className="w-4 h-4 text-zinc-400 absolute right-2.5 top-2 pointer-events-none" />
+            <span className="absolute left-2.5 top-1.5 px-1.5 py-0.5 rounded bg-zinc-200/70 text-zinc-600 text-[10px] font-mono">
+              Ctrl+K
+            </span>
+          </div>
+
+          {/* Notifications */}
+          <button
+            className="relative p-2 rounded-lg text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 transition-colors"
+            title="اعلان‌ها"
+          >
+            <Bell className="w-4 h-4" />
+            <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-orange-500 ring-2 ring-white" />
           </button>
+
+          {/* Action Button: Mokarrar Orange */}
+          <button
+            onClick={() => navigate({ to: "/tasks" })}
+            className="h-9 px-3.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm shadow-orange-500/20 transition-all active:scale-95"
+          >
+            <Plus className="w-4 h-4" />
+            <span>ثبت تسک / خرید</span>
+          </button>
+
+          <div className="h-4 w-px bg-zinc-200 mx-1 hidden sm:block" />
+
+          {/* User Profile & Logout */}
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-zinc-900 text-white flex items-center justify-center text-xs font-bold ring-2 ring-orange-500/30">
+              م
+            </div>
+            <div className="hidden sm:flex flex-col text-right">
+              <span className="text-xs font-semibold text-zinc-900 leading-tight">
+                مدیر ارشد مکرر
+              </span>
+              <span className="text-[10px] text-zinc-400 leading-tight">
+                سطح دسترسی: مدیرکل
+              </span>
+            </div>
+
+            <button
+              onClick={handleLogout}
+              className="p-1.5 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors mr-1 cursor-pointer"
+              title="خروج از سامانه"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
         </div>
-      </div>
-    </header>
+      </header>
+
+      {/* Command Palette Modal */}
+      <CommandPalette isOpen={isPaletteOpen} onClose={() => setIsPaletteOpen(false)} />
+    </>
   )
 }

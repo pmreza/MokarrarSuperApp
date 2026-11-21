@@ -8,6 +8,7 @@ from app.modules.inventory.routes import router as inventory_router
 from app.modules.webhooks.routes import router as webhooks_router
 from app.modules.exports.routes import router as exports_router
 from app.modules.dashboard.routes import router as dashboard_router
+from app.modules.bot.routes import router as bot_router
 
 api_router = APIRouter()
 api_router.include_router(login.router)
@@ -22,6 +23,7 @@ api_router.include_router(inventory_router)
 api_router.include_router(webhooks_router)
 api_router.include_router(exports_router)
 api_router.include_router(dashboard_router)
+api_router.include_router(bot_router)
 
 
 if settings.FASTAPI_ENV == "development":

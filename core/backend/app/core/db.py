@@ -4,7 +4,8 @@ from app import crud
 from app.core.config import settings
 from app.models import User, UserCreate
 
-engine = create_engine(str(settings.DATABASE_URL), pool_pre_ping=True)
+connect_args = {"check_same_thread": False} if str(settings.DATABASE_URL).startswith("sqlite") else {}
+engine = create_engine(str(settings.DATABASE_URL), pool_pre_ping=True, connect_args=connect_args)
 
 
 # make sure all SQLModel models are imported (app.models) before initializing DB
@@ -14,6 +15,9 @@ engine = create_engine(str(settings.DATABASE_URL), pool_pre_ping=True)
 
 def init_db(session: Session) -> None:
     from sqlmodel import SQLModel, text
+    import app.modules.procurement.models  # noqa: F401
+    import app.modules.webhooks.models  # noqa: F401
+
     SQLModel.metadata.create_all(engine)
     try:
         session.exec(text("ALTER TABLE \"user\" ADD COLUMN IF NOT EXISTS role VARCHAR(50) DEFAULT 'staff'"))

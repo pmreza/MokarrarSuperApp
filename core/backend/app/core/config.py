@@ -27,7 +27,7 @@ class Settings(BaseSettings):
 
     PROJECT_NAME: str = "Mokarrar Enterprise Super App"
     SENTRY_DSN: HttpUrl | None = None
-    DATABASE_URL: PostgresDsn = "postgresql://postgres:mokarrar_secret_2026@localhost:5432/mokarrar"
+    DATABASE_URL: PostgresDsn | str = "sqlite:///./mokarrar.db"
 
     # Adapter & Integration settings
     MOCK_EXTERNAL_SERVICES: bool = True
@@ -48,6 +48,8 @@ class Settings(BaseSettings):
     @classmethod
     def _use_psycopg_driver(cls, value: str | PostgresDsn) -> str:
         database_url = str(value)
+        if database_url.startswith("sqlite"):
+            return database_url
         for scheme in ("postgres://", "postgresql://"):
             if database_url.startswith(scheme):
                 return database_url.replace(scheme, "postgresql+psycopg://", 1)
@@ -93,8 +95,9 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def _enforce_non_default_secrets(self) -> Self:
         self._check_default_secret("SECRET_KEY", self.SECRET_KEY)
-        for host in self.DATABASE_URL.hosts():
-            self._check_default_secret("DATABASE_URL password", host["password"])
+        if hasattr(self.DATABASE_URL, "hosts"):
+            for host in self.DATABASE_URL.hosts():
+                self._check_default_secret("DATABASE_URL password", host["password"])
         self._check_default_secret(
             "FIRST_SUPERUSER_PASSWORD", self.FIRST_SUPERUSER_PASSWORD
         )

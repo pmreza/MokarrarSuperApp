@@ -12,15 +12,80 @@ from app.core.config import settings
 
 class UserRole(str, Enum):
     ADMIN = "admin"
+    CEO = "ceo"
+    LINE_SUPERVISOR = "line_supervisor"
+    WAREHOUSE_MANAGER = "warehouse_manager"
+    PROCUREMENT_OFFICER = "procurement_officer"
     MANAGER = "manager"
     STAFF = "staff"
     WAREHOUSE = "warehouse"
 
 
+ROLE_TITLES: dict[str, str] = {
+    UserRole.ADMIN.value: "مدیر ارشد سامانه (برنامه‌نویس)",
+    UserRole.CEO.value: "مدیرعامل",
+    UserRole.LINE_SUPERVISOR.value: "مسئول خط تولید",
+    UserRole.WAREHOUSE_MANAGER.value: "مسئول انبار و قطعات",
+    UserRole.PROCUREMENT_OFFICER.value: "مسئول تدارکات و خرید",
+    UserRole.MANAGER.value: "مدیر میانی",
+    UserRole.STAFF.value: "تکنسین / کارمند خط",
+    UserRole.WAREHOUSE.value: "انباردار",
+}
+
+DEFAULT_ROLE_PERMISSIONS: dict[str, list[str]] = {
+    UserRole.ADMIN.value: [
+        "tasks:view", "tasks:create", "tasks:update", "tasks:delete",
+        "procurement:view", "procurement:create", "procurement:approve", "procurement:pay",
+        "inventory:view", "inventory:stock_in", "inventory:stock_out",
+        "reports:view", "reports:export", "users:manage"
+    ],
+    UserRole.CEO.value: [
+        "tasks:view", "tasks:create", "tasks:update",
+        "procurement:view", "procurement:create", "procurement:approve", "procurement:pay",
+        "inventory:view",
+        "reports:view", "reports:export"
+    ],
+    UserRole.LINE_SUPERVISOR.value: [
+        "tasks:view", "tasks:create", "tasks:update",
+        "procurement:view", "procurement:create",
+        "inventory:view",
+        "reports:view"
+    ],
+    UserRole.WAREHOUSE_MANAGER.value: [
+        "inventory:view", "inventory:stock_in", "inventory:stock_out",
+        "procurement:view",
+        "tasks:view",
+        "reports:view", "reports:export"
+    ],
+    UserRole.PROCUREMENT_OFFICER.value: [
+        "procurement:view", "procurement:create", "procurement:approve", "procurement:pay",
+        "inventory:view",
+        "reports:view", "reports:export"
+    ],
+    UserRole.MANAGER.value: [
+        "tasks:view", "tasks:create", "tasks:update",
+        "procurement:view", "procurement:create", "procurement:approve",
+        "inventory:view", "reports:view", "reports:export"
+    ],
+    UserRole.STAFF.value: [
+        "tasks:view", "tasks:update",
+        "procurement:create",
+        "inventory:view"
+    ],
+    UserRole.WAREHOUSE.value: [
+        "inventory:view", "inventory:stock_in", "inventory:stock_out",
+        "tasks:view"
+    ],
+}
+
 # Role hierarchy and permissions mapping
 ROLE_HIERARCHY = {
-    UserRole.ADMIN: [UserRole.ADMIN, UserRole.MANAGER, UserRole.STAFF, UserRole.WAREHOUSE],
+    UserRole.ADMIN: list(UserRole),
+    UserRole.CEO: [UserRole.CEO, UserRole.MANAGER, UserRole.STAFF, UserRole.LINE_SUPERVISOR, UserRole.WAREHOUSE_MANAGER, UserRole.PROCUREMENT_OFFICER],
     UserRole.MANAGER: [UserRole.MANAGER, UserRole.STAFF, UserRole.WAREHOUSE],
+    UserRole.LINE_SUPERVISOR: [UserRole.LINE_SUPERVISOR, UserRole.STAFF],
+    UserRole.WAREHOUSE_MANAGER: [UserRole.WAREHOUSE_MANAGER, UserRole.WAREHOUSE, UserRole.STAFF],
+    UserRole.PROCUREMENT_OFFICER: [UserRole.PROCUREMENT_OFFICER, UserRole.STAFF],
     UserRole.WAREHOUSE: [UserRole.WAREHOUSE, UserRole.STAFF],
     UserRole.STAFF: [UserRole.STAFF],
 }
@@ -68,4 +133,3 @@ def verify_password(
 
 def get_password_hash(password: str) -> str:
     return password_hash.hash(password)
-

@@ -8,9 +8,11 @@ import {
   FileSpreadsheet,
   ShieldAlert,
   Activity,
+  UserCheck,
 } from "lucide-react"
 import { getFilteredNavigation, type NavigationItem } from "@/config/navigation.config"
 import { MokarrarLogo } from "@/components/ui/MokarrarLogo"
+import useAuth from "@/hooks/useAuth"
 
 const ICON_MAP: Record<string, React.FC<{ className?: string }>> = {
   LayoutDashboard,
@@ -23,7 +25,12 @@ const ICON_MAP: Record<string, React.FC<{ className?: string }>> = {
 
 export const Sidebar: React.FC = () => {
   const location = useLocation()
-  const navItems = getFilteredNavigation("admin")
+  const { user } = useAuth()
+
+  const navItems = getFilteredNavigation(
+    (user as any)?.role || (user?.is_superuser ? "admin" : "staff"),
+    (user as any)?.permissions_list || []
+  )
 
   return (
     <aside
@@ -88,32 +95,29 @@ export const Sidebar: React.FC = () => {
         })}
       </nav>
 
-      {/* System Status Card */}
+      {/* User Session & Role Card */}
       <div className="p-3 border-t border-zinc-800/80 bg-zinc-950/60">
         <div className="p-3 bg-zinc-900/80 rounded-xl border border-zinc-800 space-y-2">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-zinc-400 flex items-center gap-1.5 font-medium">
-              <Activity className="w-3.5 h-3.5 text-emerald-400" />
-              وضعیت یکپارچگی خطوط
+            <span className="text-zinc-200 font-bold truncate max-w-[130px]" title={user?.full_name || user?.email || ""}>
+              {user?.full_name || user?.email || "کاربر مکرر"}
             </span>
-            <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              آنلاین
+            <span className="text-[10px] px-2 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30 font-bold">
+              {(user as any)?.role_title || (user as any)?.role || "کارمند"}
             </span>
           </div>
 
           <div className="text-[11px] text-zinc-400 space-y-1">
-            <div className="flex justify-between">
-              <span>تسک‌های صنعتی:</span>
-              <span className="text-zinc-300 font-mono">متصل</span>
+            <div className="flex justify-between items-center">
+              <span>شناسه کاربر:</span>
+              <span className="text-zinc-300 font-mono text-[10px]">{user?.email || "—"}</span>
             </div>
-            <div className="flex justify-between">
-              <span>انبار و کاردکس:</span>
-              <span className="text-zinc-300 font-mono">متصل</span>
-            </div>
-            <div className="flex justify-between">
-              <span>اتوماسیون مالی:</span>
-              <span className="text-zinc-300 font-mono">فعال</span>
+            <div className="flex justify-between items-center">
+              <span>وضعیت اتصال:</span>
+              <span className="text-emerald-400 font-bold flex items-center gap-1 text-[10px]">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                آنلاین
+              </span>
             </div>
           </div>
         </div>

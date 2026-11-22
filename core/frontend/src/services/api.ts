@@ -19,73 +19,26 @@ export const apiClient = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
-  timeout: 30000, // 30s timeout for Render cold starts
+  timeout: 30000,
 })
 
-// Auto-authenticate helper for seamless access & testing
-let authPromise: Promise<string | null> | null = null
-
-export const ensureAuthToken = async (): Promise<string | null> => {
-  const existingToken = localStorage.getItem("access_token")
-  if (existingToken) return existingToken
-
-  if (authPromise) return authPromise
-
-  authPromise = (async () => {
-    try {
-      const formData = new URLSearchParams()
-      formData.append("username", "admin@mokarrar.com")
-      formData.append("password", "MokarrarAdmin2026!")
-
-      const res = await axios.post(`${BASE_URL}/api/v1/login/access-token`, formData, {
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        timeout: 25000,
-      })
-
-      if (res.data?.access_token) {
-        localStorage.setItem("access_token", res.data.access_token)
-        return res.data.access_token
-      }
-    } catch (err) {
-      console.warn("Auto-token acquisition notice:", err)
-    } finally {
-      authPromise = null
-    }
-    return null
-  })()
-
-  return authPromise
-}
-
-// Attach Bearer token to all requests
-apiClient.interceptors.request.use(async (config) => {
-  let token = localStorage.getItem("access_token")
-  if (!token && !config.url?.includes("/login/access-token")) {
-    token = await ensureAuthToken()
-  }
+// Attach Bearer token to all requests if present
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem("access_token")
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
   return config
 })
 
-// Handle response errors & automatic retry on 401
+// Handle response errors & 401 unauthorized
 apiClient.interceptors.response.use(
   (response) => response,
-  async (error) => {
-    const originalRequest = error.config
-    if (
-      error.response?.status === 401 &&
-      originalRequest &&
-      !originalRequest._retry &&
-      !originalRequest.url?.includes("/login/access-token")
-    ) {
-      originalRequest._retry = true
-      localStorage.removeItem("access_token")
-      const newToken = await ensureAuthToken()
-      if (newToken) {
-        originalRequest.headers.Authorization = `Bearer ${newToken}`
-        return apiClient(originalRequest)
+  (error) => {
+    if (error.response?.status === 401 && typeof window !== "undefined") {
+      if (!window.location.pathname.includes("/login")) {
+        localStorage.removeItem("access_token")
+        window.location.href = "/login"
       }
     }
     return Promise.reject(error)
@@ -225,6 +178,45 @@ export const api = {
   dashboard: {
     getKpis: async () => {
       const res = await apiClient.get("/dashboard/kpis")
+      return res.data
+    },
+  },
+
+  // User & Permission Management (RBAC)
+  users: {
+    list: async (skip: number = 0, limit: number = 100) => {
+      const res = await apiClient.get("/users/", { params: { skip, limit } })
+      return res.data
+    },
+    getRolesMetadata: async () => {
+      const res = await apiClient.get("/users/roles/metadata")
+      return res.data
+    },
+    create: async (data: {
+      email: string
+      full_name?: string
+      password: string
+      role?: string
+      permissions?: string
+      is_active?: boolean
+      is_superuser?: boolean
+    }) => {
+      const res = await apiClient.post("/users/", data)
+      return res.data
+    },
+    update: async (userId: string, data: Record<string, any>) => {
+      const res = await apiClient.patch(`/users/${userId}`, data)
+      return res.data
+    },
+    delete: async (userId: string) => {
+      const res = await apiClient.delete(`/users/${userId}`)
+      return res.data
+    },
+    updatePasswordMe: async (currentPassword: string, newPassword: string) => {
+      const res = await apiClient.patch("/users/me/password", {
+        current_password: currentPassword,
+        new_password: newPassword,
+      })
       return res.data
     },
   },

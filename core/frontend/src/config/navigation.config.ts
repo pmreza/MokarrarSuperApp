@@ -5,6 +5,7 @@ export interface NavigationItem {
   icon: string
   phase: 1 | 2 | 3
   phaseBadge?: string
+  requiredPermission?: string
   allowedRoles: string[]
   description?: string
 }
@@ -16,7 +17,17 @@ export const NAVIGATION_CONFIG: NavigationItem[] = [
     path: "/",
     icon: "LayoutDashboard",
     phase: 1,
-    allowedRoles: ["admin", "manager", "staff", "warehouse"],
+    requiredPermission: "reports:view",
+    allowedRoles: [
+      "admin",
+      "ceo",
+      "line_supervisor",
+      "warehouse_manager",
+      "procurement_officer",
+      "manager",
+      "staff",
+      "warehouse",
+    ],
     description: "نمای کلی شاخص‌های کلیدی عملکرد و آمارهای سازمانی",
   },
   {
@@ -26,7 +37,16 @@ export const NAVIGATION_CONFIG: NavigationItem[] = [
     icon: "Kanban",
     phase: 1,
     phaseBadge: "فاز ۱ (فعال)",
-    allowedRoles: ["admin", "manager", "staff", "warehouse"],
+    requiredPermission: "tasks:view",
+    allowedRoles: [
+      "admin",
+      "ceo",
+      "line_supervisor",
+      "warehouse_manager",
+      "manager",
+      "staff",
+      "warehouse",
+    ],
     description: "تخته کانبان، وضعیت تسک‌ها، تخصیص نیروها و پیگیری وظایف",
   },
   {
@@ -36,7 +56,16 @@ export const NAVIGATION_CONFIG: NavigationItem[] = [
     icon: "ShoppingCart",
     phase: 2,
     phaseBadge: "فاز ۲",
-    allowedRoles: ["admin", "manager", "staff"],
+    requiredPermission: "procurement:view",
+    allowedRoles: [
+      "admin",
+      "ceo",
+      "line_supervisor",
+      "procurement_officer",
+      "manager",
+      "warehouse_manager",
+      "staff",
+    ],
     description: "درخواست‌های خرید، تایید مدیران، پرداخت و گردش کار خودکار",
   },
   {
@@ -46,7 +75,15 @@ export const NAVIGATION_CONFIG: NavigationItem[] = [
     icon: "Warehouse",
     phase: 3,
     phaseBadge: "فاز ۳",
-    allowedRoles: ["admin", "manager", "warehouse"],
+    requiredPermission: "inventory:view",
+    allowedRoles: [
+      "admin",
+      "ceo",
+      "warehouse_manager",
+      "line_supervisor",
+      "warehouse",
+      "manager",
+    ],
     description: "کاردکس کالاها، کنترل موجودی، ورود و خروج قطعات و هشدار کسری",
   },
   {
@@ -55,7 +92,15 @@ export const NAVIGATION_CONFIG: NavigationItem[] = [
     path: "/reports",
     icon: "FileSpreadsheet",
     phase: 1,
-    allowedRoles: ["admin", "manager", "staff", "warehouse"],
+    requiredPermission: "reports:view",
+    allowedRoles: [
+      "admin",
+      "ceo",
+      "warehouse_manager",
+      "procurement_officer",
+      "manager",
+      "line_supervisor",
+    ],
     description: "تولید و دانلود گزارش‌های رسمی Excel (راست‌چین) و Word",
   },
   {
@@ -64,14 +109,21 @@ export const NAVIGATION_CONFIG: NavigationItem[] = [
     path: "/admin",
     icon: "ShieldAlert",
     phase: 1,
+    requiredPermission: "users:manage",
     allowedRoles: ["admin"],
     description: "تعریف کاربران، نقش‌ها و سطوح دسترسی",
   },
 ]
 
-export function getFilteredNavigation(userRole: string = "staff"): NavigationItem[] {
+export function getFilteredNavigation(
+  userRole: string = "staff",
+  userPermissions: string[] = []
+): NavigationItem[] {
   return NAVIGATION_CONFIG.filter((item) => {
     if (userRole === "admin") return true
+    if (item.requiredPermission && userPermissions.includes(item.requiredPermission)) {
+      return true
+    }
     return item.allowedRoles.includes(userRole)
   })
 }

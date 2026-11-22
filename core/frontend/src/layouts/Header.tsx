@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from "react"
-import { useLocation, useNavigate } from "@tanstack/react-router"
-import { Search, Bell, LogOut, ChevronLeft, Plus } from "lucide-react"
+import { useLocation, useNavigate, Link } from "@tanstack/react-router"
+import { Search, Bell, LogOut, ChevronLeft, Plus, Settings } from "lucide-react"
 import { NAVIGATION_CONFIG } from "@/config/navigation.config"
 import { CommandPalette } from "@/components/ui/CommandPalette"
+import useAuth from "@/hooks/useAuth"
 
 export const Header: React.FC = () => {
   const [isPaletteOpen, setIsPaletteOpen] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
+  const { user, logout } = useAuth()
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -104,22 +106,36 @@ export const Header: React.FC = () => {
 
           <div className="h-4 w-px bg-zinc-200 mx-1 hidden sm:block" />
 
-          {/* User Profile & Logout */}
+          {/* User Profile & Settings / Logout */}
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-zinc-900 text-white flex items-center justify-center text-xs font-bold ring-2 ring-orange-500/30">
-              م
-            </div>
-            <div className="hidden sm:flex flex-col text-right">
-              <span className="text-xs font-semibold text-zinc-900 leading-tight">
-                مدیر ارشد مکرر
-              </span>
-              <span className="text-[10px] text-zinc-400 leading-tight">
-                سطح دسترسی: مدیرکل
-              </span>
-            </div>
+            <Link
+              to="/settings"
+              className="flex items-center gap-2 hover:bg-zinc-50 p-1.5 rounded-lg transition-colors cursor-pointer group"
+              title="تنظیمات حساب کاربری"
+            >
+              <div className="w-8 h-8 rounded-full bg-zinc-900 text-white flex items-center justify-center text-xs font-bold ring-2 ring-orange-500/30 group-hover:ring-orange-500">
+                {user?.full_name ? user.full_name.trim().charAt(0) : (user?.email?.charAt(0).toUpperCase() || "م")}
+              </div>
+              <div className="hidden sm:flex flex-col text-right">
+                <span className="text-xs font-semibold text-zinc-900 leading-tight">
+                  {user?.full_name || user?.email || "کاربر مکرر"}
+                </span>
+                <span className="text-[10px] text-zinc-500 leading-tight">
+                  سطح دسترسی: {(user as any)?.role_title || (user as any)?.role || "کارمند"}
+                </span>
+              </div>
+            </Link>
+
+            <Link
+              to="/settings"
+              className="p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors cursor-pointer"
+              title="تنظیمات و تغییر رمز"
+            >
+              <Settings className="w-4 h-4" />
+            </Link>
 
             <button
-              onClick={handleLogout}
+              onClick={() => logout()}
               className="p-1.5 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors mr-1 cursor-pointer"
               title="خروج از سامانه"
             >

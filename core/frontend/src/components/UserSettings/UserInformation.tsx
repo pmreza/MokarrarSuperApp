@@ -22,8 +22,8 @@ import { cn } from "@/lib/utils"
 import { handleError } from "@/utils"
 
 const formSchema = z.object({
-  full_name: z.string().max(30).optional(),
-  email: z.email({ message: "Invalid email address" }),
+  full_name: z.string().max(100).optional(),
+  email: z.string().min(1, { message: "شناسه کاربری الزامی است" }),
 })
 
 type FormData = z.infer<typeof formSchema>

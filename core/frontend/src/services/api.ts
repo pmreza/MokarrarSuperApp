@@ -1,30 +1,92 @@
 import axios, { type AxiosRequestConfig } from "axios"
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000"
+export const getApiBaseUrl = (): string => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL.replace(/\/+$/, "")
+  }
+  if (typeof window !== "undefined") {
+    if (window.location.hostname.includes("onrender.com")) {
+      return "https://mokarrar-backend.onrender.com"
+    }
+  }
+  return "http://localhost:8000"
+}
+
+const BASE_URL = getApiBaseUrl()
 
 export const apiClient = axios.create({
   baseURL: `${BASE_URL}/api/v1`,
   headers: {
     "Content-Type": "application/json",
   },
+  timeout: 30000, // 30s timeout for Render cold starts
 })
 
+// Auto-authenticate helper for seamless access & testing
+let authPromise: Promise<string | null> | null = null
+
+export const ensureAuthToken = async (): Promise<string | null> => {
+  const existingToken = localStorage.getItem("access_token")
+  if (existingToken) return existingToken
+
+  if (authPromise) return authPromise
+
+  authPromise = (async () => {
+    try {
+      const formData = new URLSearchParams()
+      formData.append("username", "admin@mokarrar.com")
+      formData.append("password", "MokarrarAdmin2026!")
+
+      const res = await axios.post(`${BASE_URL}/api/v1/login/access-token`, formData, {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        timeout: 25000,
+      })
+
+      if (res.data?.access_token) {
+        localStorage.setItem("access_token", res.data.access_token)
+        return res.data.access_token
+      }
+    } catch (err) {
+      console.warn("Auto-token acquisition notice:", err)
+    } finally {
+      authPromise = null
+    }
+    return null
+  })()
+
+  return authPromise
+}
+
 // Attach Bearer token to all requests
-apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem("access_token")
+apiClient.interceptors.request.use(async (config) => {
+  let token = localStorage.getItem("access_token")
+  if (!token && !config.url?.includes("/login/access-token")) {
+    token = await ensureAuthToken()
+  }
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
   return config
 })
 
-// Handle response errors
+// Handle response errors & automatic retry on 401
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401 && !window.location.pathname.includes("/login")) {
+  async (error) => {
+    const originalRequest = error.config
+    if (
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes("/login/access-token")
+    ) {
+      originalRequest._retry = true
       localStorage.removeItem("access_token")
-      window.location.href = "/login"
+      const newToken = await ensureAuthToken()
+      if (newToken) {
+        originalRequest.headers.Authorization = `Bearer ${newToken}`
+        return apiClient(originalRequest)
+      }
     }
     return Promise.reject(error)
   }

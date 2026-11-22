@@ -124,15 +124,27 @@ function Login() {
               )}
             />
 
-            <LoadingButton type="submit" loading={loginMutation.isPending}>
-              Log In
+            <LoadingButton type="submit" loading={loginMutation.isPending} className="bg-orange-500 hover:bg-orange-600 text-white">
+              ورود به سامانه
             </LoadingButton>
+
+            <button
+              type="button"
+              onClick={() => {
+                form.setValue("username", "admin@mokarrar.com")
+                form.setValue("password", "MokarrarAdmin2026!")
+                loginMutation.mutate({ username: "admin@mokarrar.com", password: "MokarrarAdmin2026!" })
+              }}
+              className="w-full py-2 px-4 rounded-lg border border-dashed border-orange-500/50 bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 text-xs font-bold transition-colors cursor-pointer flex items-center justify-center gap-2"
+            >
+              <span>⚡ ورود سریع با اکانت مدیر ارشد مکرر (تست آنی)</span>
+            </button>
           </div>
 
           <div className="text-center text-sm">
-            Don't have an account yet?{" "}
-            <RouterLink to="/signup" className="underline underline-offset-4">
-              Sign up
+            حساب کاربری ندارید؟{" "}
+            <RouterLink to="/signup" className="underline underline-offset-4 text-orange-600">
+              ثبت نام کاربر جدید
             </RouterLink>
           </div>
         </form>

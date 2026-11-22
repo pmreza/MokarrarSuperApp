@@ -22,10 +22,10 @@ interface KanbanBoardProps {
 }
 
 const COLUMNS = [
-  { id: "backlog", title: "بک‌لاگ", color: "border-slate-300", headerBg: "bg-slate-100" },
-  { id: "todo", title: "در انتظار انجام", color: "border-blue-400", headerBg: "bg-blue-50" },
-  { id: "in_progress", title: "در حال انجام", color: "border-amber-400", headerBg: "bg-amber-50" },
-  { id: "done", title: "تکمیل شده", color: "border-emerald-500", headerBg: "bg-emerald-50" },
+  { id: "backlog", title: "در انتظار اقدام / آماده‌سازی", color: "border-zinc-300", headerBg: "bg-zinc-100", dot: "bg-zinc-400" },
+  { id: "todo", title: "برنامه‌ریزی شده شیفت", color: "border-blue-400", headerBg: "bg-blue-50", dot: "bg-blue-500" },
+  { id: "in_progress", title: "در حال اجرا در سالن", color: "border-orange-500", headerBg: "bg-orange-50", dot: "bg-[#e02b00] animate-pulse" },
+  { id: "done", title: "کنترل کیفیت و تأیید نهایی (QC)", color: "border-emerald-500", headerBg: "bg-emerald-50", dot: "bg-emerald-500" },
 ]
 
 export const KanbanBoard: React.FC<KanbanBoardProps> = ({
@@ -34,8 +34,21 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
   onTaskStateChange,
   onAddTask,
 }) => {
+  const getCardAccent = (priority: string) => {
+    switch (priority?.toLowerCase()) {
+      case "urgent":
+        return "bg-[#e02b00]"
+      case "high":
+        return "bg-orange-500"
+      case "medium":
+        return "bg-[#062434]"
+      default:
+        return "bg-zinc-400"
+    }
+  }
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5" dir="rtl">
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4" dir="rtl">
       {COLUMNS.map((col, colIdx) => {
         const colTasks = tasks.filter((t) => t.state === col.id)
         const nextCol = COLUMNS[colIdx + 1]?.id
@@ -44,22 +57,22 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
         return (
           <div
             key={col.id}
-            className="flex flex-col bg-slate-100/70 border border-slate-200/80 rounded-2xl p-3 min-h-[550px]"
+            className="flex flex-col bg-zinc-100/60 border border-zinc-200/90 rounded-2xl p-3 min-h-[550px]"
           >
             {/* Column Header */}
-            <div className="flex items-center justify-between pb-3 px-2 border-b border-slate-200/60 mb-3">
+            <div className="flex items-center justify-between pb-3 px-2 border-b border-zinc-200/80 mb-3 bg-white/60 p-2.5 rounded-xl shadow-2xs">
               <div className="flex items-center gap-2">
-                <span className={`w-2.5 h-2.5 rounded-full ${col.headerBg} border ${col.color}`} />
-                <h4 className="text-sm font-bold text-slate-800">{col.title}</h4>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-semibold">
+                <span className={`w-2.5 h-2.5 rounded-full ${col.dot}`} />
+                <h4 className="text-xs font-bold text-zinc-900">{col.title}</h4>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-200/80 text-zinc-700 font-bold font-mono">
                   {colTasks.length}
                 </span>
               </div>
               {onAddTask && (
                 <button
                   onClick={() => onAddTask(col.id)}
-                  className="p-1 text-slate-500 hover:text-blue-600 rounded-md hover:bg-white transition-colors"
-                  title="افزودن تسک جدید"
+                  className="p-1 text-zinc-500 hover:text-orange-600 rounded-md hover:bg-zinc-100 transition-colors cursor-pointer"
+                  title="افزودن دستور کار جدید"
                 >
                   <Plus className="w-4 h-4" />
                 </button>
@@ -69,27 +82,30 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
             {/* Column Cards */}
             <div className="flex-1 space-y-3 overflow-y-auto">
               {colTasks.length === 0 ? (
-                <div className="flex items-center justify-center h-32 border-2 border-dashed border-slate-200 rounded-xl text-xs text-slate-400">
-                  تسک خالی
+                <div className="flex items-center justify-center h-32 border-2 border-dashed border-zinc-200 rounded-xl text-xs text-zinc-400">
+                  دستور کاری ثبت نشده است
                 </div>
               ) : (
                 colTasks.map((task) => (
                   <div
                     key={task.id}
                     onClick={() => onTaskClick(task)}
-                    className="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs hover:shadow-md transition-all cursor-pointer group"
+                    className="bg-white p-4 rounded-xl border border-zinc-200/90 shadow-2xs hover:shadow-md transition-all cursor-pointer group relative overflow-hidden"
                   >
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <span className="text-[11px] font-mono text-slate-400">#{task.id}</span>
+                    {/* Top Accent Strip */}
+                    <div className={`absolute top-0 right-0 left-0 h-1 ${getCardAccent(task.priority)}`} />
+
+                    <div className="flex items-start justify-between gap-2 mb-2 pt-1">
+                      <span className="text-[10px] font-mono text-zinc-400 font-bold">WO-#{task.id}</span>
                       <StatusBadge status={task.priority} />
                     </div>
 
-                    <h5 className="text-sm font-semibold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug">
+                    <h5 className="text-xs sm:text-sm font-bold text-zinc-900 group-hover:text-orange-600 transition-colors line-clamp-2 leading-snug">
                       {task.title}
                     </h5>
 
                     {task.description && (
-                      <p className="text-xs text-slate-500 mt-1 line-clamp-2 leading-relaxed">
+                      <p className="text-xs text-zinc-500 mt-1.5 line-clamp-2 leading-relaxed">
                         {task.description}
                       </p>
                     )}
@@ -100,7 +116,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                         {task.tags.map((tag, tIdx) => (
                           <span
                             key={tIdx}
-                            className="text-[10px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md"
+                            className="text-[10px] px-2 py-0.5 bg-zinc-100 text-zinc-600 rounded-md font-medium"
                           >
                             #{tag}
                           </span>
@@ -109,25 +125,25 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                     )}
 
                     {/* Footer Info */}
-                    <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                    <div className="mt-3.5 pt-2.5 border-t border-zinc-100 flex items-center justify-between text-xs text-zinc-500">
                       <div className="flex items-center gap-1.5">
-                        <div className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center text-[10px] text-slate-600 font-bold border border-slate-200">
+                        <div className="w-5 h-5 rounded-full bg-zinc-100 flex items-center justify-center text-[10px] text-zinc-700 font-bold border border-zinc-200">
                           <User className="w-3 h-3" />
                         </div>
                         <span className="text-[11px] truncate max-w-[100px]">
-                          {task.assignee_name || "تخصیص‌نیافته"}
+                          {task.assignee_name || "کادر فنی"}
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2.5">
                         {task.comments && task.comments.length > 0 && (
-                          <span className="flex items-center gap-1 text-[11px] text-slate-400">
+                          <span className="flex items-center gap-1 text-[11px] text-zinc-400">
                             <MessageSquare className="w-3 h-3" />
                             {task.comments.length}
                           </span>
                         )}
                         {task.due_date && (
-                          <span className="flex items-center gap-1 text-[11px] text-slate-400 font-mono">
+                          <span className="flex items-center gap-1 text-[10px] text-zinc-400 font-mono">
                             <Clock className="w-3 h-3" />
                             {task.due_date}
                           </span>
@@ -137,16 +153,16 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
                     {/* Quick Move Buttons */}
                     <div
-                      className="mt-3 pt-2 border-t border-slate-100/60 flex items-center justify-between gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="mt-2.5 pt-2 border-t border-zinc-100/60 flex items-center justify-between gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={(e) => e.stopPropagation()}
                     >
                       {prevCol ? (
                         <button
                           onClick={() => onTaskStateChange(task.id, prevCol)}
-                          className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md text-[11px] flex items-center gap-1"
-                          title="مرحله قبل"
+                          className="px-2 py-0.5 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded text-[11px] flex items-center gap-1 cursor-pointer"
+                          title="انتقال به ستون قبل"
                         >
-                          <ArrowRight className="w-3.5 h-3.5" />
+                          <ArrowRight className="w-3 h-3" />
                           <span>قبلی</span>
                         </button>
                       ) : <span />}
@@ -154,11 +170,11 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                       {nextCol ? (
                         <button
                           onClick={() => onTaskStateChange(task.id, nextCol)}
-                          className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-md text-[11px] flex items-center gap-1"
-                          title="مرحله بعد"
+                          className="px-2 py-0.5 text-orange-600 hover:text-orange-800 hover:bg-orange-50 rounded text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                          title="انتقال به ستون بعد"
                         >
                           <span>بعدی</span>
-                          <ArrowLeft className="w-3.5 h-3.5" />
+                          <ArrowLeft className="w-3 h-3" />
                         </button>
                       ) : <span />}
                     </div>

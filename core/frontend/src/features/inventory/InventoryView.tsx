@@ -190,26 +190,31 @@ export const InventoryView: React.FC = () => {
   return (
     <div className="space-y-5" dir="rtl">
       {/* Top Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold text-slate-900">انبارداری و کنترل موجودی قطعات (Phase 3)</h2>
-            <span className="text-[10px] px-2 py-0.5 bg-emerald-100 text-emerald-800 font-bold rounded-md font-mono">
-              InvenTree Engine
+      <div className="bg-white rounded-2xl border border-zinc-200/90 p-5 shadow-xs card-interactive animate-slide-up flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="p-1.5 rounded-lg bg-[#062434] text-white flex items-center justify-center shadow-xs">
+              <Warehouse className="w-5 h-5 text-orange-400" />
+            </span>
+            <h1 className="text-base sm:text-lg font-black text-zinc-900 tracking-tight">
+              انبار و کاردکس مکانیزه کالا و قطعات یدکی
+            </h1>
+            <span className="px-2.5 py-0.5 rounded-full font-bold text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200">
+              موتور InvenTree • فاز ۳
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">
-            کاردکس کالا • ردیابی شماره بچ و انبارش • ورود خودکار پس از تحویل تسک‌های خرید
+          <p className="text-xs text-zinc-500">
+            کاردکس لحظه‌ای کالا • ردیابی انبار پای کار و انبار مرکزی ملارد • اتصال خودکار به زنجیره خرید و تسک‌های Plane
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Tab Switch */}
-          <div className="flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200/70">
+          <div className="flex items-center p-1 bg-zinc-100 rounded-xl border border-zinc-200/80">
             <button
               onClick={() => setActiveTab("catalog")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === "catalog" ? "bg-white text-emerald-700 shadow-xs" : "text-slate-600"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                activeTab === "catalog" ? "bg-white text-orange-600 shadow-2xs" : "text-zinc-600 hover:text-zinc-900"
               }`}
             >
               <Package className="w-3.5 h-3.5" />
@@ -217,8 +222,8 @@ export const InventoryView: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab("history")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === "history" ? "bg-white text-emerald-700 shadow-xs" : "text-slate-600"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                activeTab === "history" ? "bg-white text-orange-600 shadow-2xs" : "text-zinc-600 hover:text-zinc-900"
               }`}
             >
               <History className="w-3.5 h-3.5" />
@@ -228,14 +233,15 @@ export const InventoryView: React.FC = () => {
 
           <button
             onClick={loadData}
-            className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-slate-200 rounded-xl transition-colors cursor-pointer"
+            className="p-2 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 border border-zinc-200 rounded-xl transition-colors cursor-pointer"
+            title="بروزرسانی داده‌ها"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-emerald-600" : ""}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-orange-600" : ""}`} />
           </button>
 
           <button
             onClick={() => setIsStockInOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
+            className="h-9 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>رسید ورود کالا</span>
@@ -243,7 +249,7 @@ export const InventoryView: React.FC = () => {
 
           <button
             onClick={() => setIsStockOutOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-md shadow-amber-500/20 transition-all cursor-pointer"
+            className="h-9 px-3.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
           >
             <Minus className="w-4 h-4" />
             <span>حواله خروج کالا</span>

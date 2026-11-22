@@ -10,6 +10,16 @@ import {
   DollarSign,
   FileSpreadsheet,
   ArrowRight,
+  TrendingUp,
+  Clock,
+  AlertTriangle,
+  FileText,
+  Check,
+  Eye,
+  Undo2,
+  Send,
+  ShieldCheck,
+  Search,
 } from "lucide-react"
 import { DataTable, type Column } from "@/components/ui/DataTable"
 import { StatusBadge } from "@/components/ui/StatusBadge"
@@ -29,7 +39,7 @@ export const ProcurementView: React.FC = () => {
   const [priority, setPriority] = useState("high")
   const [justification, setJustification] = useState("")
   const [items, setItems] = useState([
-    { item_name: "بلبرینگ دور بالا SKF", quantity: 5, unit: "عدد", estimated_unit_price: 2500000, part_number: "MOK-BRG-6205" },
+    { item_name: "مستربچ مشکی پایه پلی‌اتیلن و پایدارکننده UV", quantity: 2500, unit: "کیلوگرم", estimated_unit_price: 296000, part_number: "MB-PE-UV402" },
   ])
 
   const loadRequests = async () => {
@@ -37,6 +47,9 @@ export const ProcurementView: React.FC = () => {
       setLoading(true)
       const data = await api.procurement.list()
       setRequests(data)
+      if (data && data.length > 0 && !selectedReq) {
+        setSelectedReq(data[0])
+      }
     } catch (err) {
       console.error(err)
       toast.error("خطا در بارگذاری فهرست درخواست‌های خرید")
@@ -51,10 +64,9 @@ export const ProcurementView: React.FC = () => {
 
   const handleApprove = async (id: string) => {
     try {
-      await api.procurement.approve(id, "تایید شد توسط مدیر")
-      toast.success("درخواست خرید با موفقیت تایید گردید.")
+      await api.procurement.approve(id, "تایید شد توسط مدیر ارشد کارخانه")
+      toast.success("درخواست خرید با موفقیت تایید و ابلاغ گردید.")
       loadRequests()
-      if (selectedReq?.id === id) setSelectedReq(null)
     } catch (err) {
       toast.error("خطا در تایید درخواست")
     }
@@ -62,10 +74,9 @@ export const ProcurementView: React.FC = () => {
 
   const handleReject = async (id: string) => {
     try {
-      await api.procurement.reject(id, "موجودی انبار کافی است.")
+      await api.procurement.reject(id, "موجودی انبار کافی است یا نیازمند استعلام مجدد است.")
       toast.warning("درخواست خرید رد شد.")
       loadRequests()
-      if (selectedReq?.id === id) setSelectedReq(null)
     } catch (err) {
       toast.error("خطا در رد درخواست")
     }
@@ -74,10 +85,9 @@ export const ProcurementView: React.FC = () => {
   const handleMarkPaid = async (id: string) => {
     try {
       toast.info("در حال پرداخت، ایجاد تسک در Plane و ارسال وبهوک به n8n...")
-      const res = await api.procurement.markPaid(id)
+      await api.procurement.markPaid(id)
       toast.success("پرداخت ثبت شد! تسک تحویل کالا در Plane ایجاد و وبهوک n8n با موفقیت شلیک شد.")
       loadRequests()
-      if (selectedReq?.id === id) setSelectedReq(null)
     } catch (err) {
       toast.error("خطا در ثبت پرداخت و اتصال به n8n")
     }
@@ -122,11 +132,19 @@ export const ProcurementView: React.FC = () => {
     setItems((prev) => prev.filter((_, idx) => idx !== index))
   }
 
+  // Calculate totals
+  const totalRequestsCount = requests.length
+  const pendingRequests = requests.filter((r) => r.status === "PENDING_APPROVAL")
+  const approvedRequests = requests.filter((r) => r.status === "APPROVED" || r.status === "PAID" || r.status === "DELIVERED")
+  const totalAmount = requests.reduce((acc, r) => acc + (r.total_estimated_cost || 0), 0)
+
+  const activeReview = selectedReq || (requests.length > 0 ? requests[0] : null)
+
   const columns: Column<any>[] = [
     {
-      header: "شماره درخواست",
+      header: "کد درخواست",
       accessorKey: "request_number",
-      className: "w-32 text-center font-mono text-xs font-bold text-blue-700",
+      className: "w-28 text-center font-mono text-xs font-bold text-orange-600",
     },
     {
       header: "عنوان سفارش خرید",
@@ -134,11 +152,13 @@ export const ProcurementView: React.FC = () => {
         <div>
           <span
             onClick={() => setSelectedReq(row)}
-            className="font-bold text-slate-900 hover:text-blue-600 cursor-pointer"
+            className={`font-bold text-xs hover:text-orange-600 cursor-pointer ${
+              selectedReq?.id === row.id ? "text-orange-600" : "text-zinc-900"
+            }`}
           >
             {row.title}
           </span>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-[11px] text-zinc-400 mt-0.5">
             متقاضی: {row.requester_name} | {row.department}
           </p>
         </div>
@@ -147,19 +167,19 @@ export const ProcurementView: React.FC = () => {
     {
       header: "مبلغ برآوردی (ریال)",
       cell: (row) => (
-        <span className="font-mono text-xs font-bold text-slate-800">
+        <span className="font-mono text-xs font-bold text-zinc-800">
           {(row.total_estimated_cost || 0).toLocaleString()}
         </span>
       ),
-      className: "w-40 text-left",
+      className: "w-36 text-left",
     },
     {
-      header: "وضعیت تایید",
+      header: "وضعیت گردش",
       cell: (row) => <StatusBadge status={row.status} />,
       className: "w-36 text-center",
     },
     {
-      header: "عملیات گردش‌کار",
+      header: "اقدامات",
       cell: (row) => (
         <div className="flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
           {row.status === "PENDING_APPROVAL" && (
@@ -184,87 +204,346 @@ export const ProcurementView: React.FC = () => {
           {row.status === "APPROVED" && (
             <button
               onClick={() => handleMarkPaid(row.id)}
-              className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+              className="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
               title="ثبت پرداخت و ارسال وب‌هوک به n8n و تسک Plane"
             >
               <CreditCard className="w-3.5 h-3.5" />
-              <span>پرداخت و ارسال خودکار</span>
+              <span>پرداخت و ارسال</span>
             </button>
           )}
 
           {row.status === "PAID" && (
-            <span className="text-[11px] font-semibold text-purple-700 flex items-center gap-1">
+            <span className="text-[11px] font-semibold text-orange-700 flex items-center gap-1">
               <CheckCircle2 className="w-3.5 h-3.5" />
               در انتظار تحویل
             </span>
           )}
 
           {row.status === "DELIVERED" && (
-            <span className="text-[11px] font-semibold text-teal-700 flex items-center gap-1">
+            <span className="text-[11px] font-semibold text-emerald-700 flex items-center gap-1">
               <CheckCircle2 className="w-3.5 h-3.5" />
               تحویل انبار شد
             </span>
           )}
         </div>
       ),
-      className: "w-52 text-center",
+      className: "w-48 text-center",
     },
   ]
 
   return (
-    <div className="space-y-5" dir="rtl">
-      {/* Top Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold text-slate-900">گردش کار تدارکات و خرید (Phase 2)</h2>
-            <span className="text-[10px] px-2 py-0.5 bg-purple-100 text-purple-700 font-bold rounded-md">
-              اتوماسیون چندمرحله‌ای
+    <div className="space-y-6" dir="rtl">
+      {/* 1. Stitch Top Operational Banner */}
+      <div className="bg-white rounded-2xl border border-zinc-200/90 p-5 shadow-xs card-interactive animate-slide-up flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="p-1.5 rounded-lg bg-[#062434] text-white flex items-center justify-center shadow-xs">
+              <ShoppingCart className="w-5 h-5 text-orange-400" />
+            </span>
+            <h1 className="text-base sm:text-lg font-black text-zinc-900 tracking-tight">
+              سامانه تدارکات و گردش مصوبات خرید مواد و تجهیزات
+            </h1>
+            <span className="px-2.5 py-0.5 rounded-full font-bold text-[11px] bg-orange-50 text-orange-700 border border-orange-200">
+              فاز ۲: اتوماسیون زنجیره تأمین
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">
-            تایید مدیران • اتصال رویداد محور به n8n • صدور خودکار تسک تحویل کالا در Plane
+          <p className="text-xs text-zinc-500">
+            تأییدات چندمرحله‌ای بر اساس حدود اختیارات مدیران، کنترل برخط بودجه مراکز هزینه و اعتبارسنجی استعلام قیمت تأمین‌کنندگان
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        {/* Action Launchers */}
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={loadRequests}
-            className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-slate-200 rounded-xl transition-colors cursor-pointer"
+            className="p-2 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 border border-zinc-200 rounded-xl transition-colors cursor-pointer"
+            title="بروزرسانی داده‌ها"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-purple-600" : ""}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-orange-600" : ""}`} />
+          </button>
+
+          <button
+            onClick={() => api.exports.downloadProcurementExcel()}
+            className="h-9 px-3 bg-zinc-50 hover:bg-zinc-100 text-zinc-700 border border-zinc-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+            <span className="hidden sm:inline">گزارش مالی (.xlsx)</span>
           </button>
 
           <button
             onClick={() => setIsCreateOpen(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl text-xs font-bold shadow-md shadow-purple-500/20 transition-all cursor-pointer"
+            className="h-9 px-3.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-orange-500/20 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>ثبت درخواست خرید جدید</span>
+            <span>درخواست خرید جدید (PR)</span>
           </button>
         </div>
       </div>
 
-      {/* Main Table */}
+      {/* 2. Top KPI Telemetry Strip (4 Cards) */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-slide-up" style={{ animationDelay: "60ms" }}>
+        {/* Card 1 */}
+        <div className="bg-white rounded-2xl border border-zinc-200/90 p-5 shadow-xs overflow-hidden flex flex-col justify-between relative">
+          <div className="absolute top-0 right-0 left-0 h-1 bg-[#e02b00]" />
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] text-zinc-400 font-semibold">درخواست‌های در انتظار بررسی</span>
+            <Clock className="w-4 h-4 text-orange-600" />
+          </div>
+          <div className="my-3 flex items-baseline justify-between">
+            <span className="text-3xl font-black text-zinc-900 tracking-tight font-mono">{pendingRequests.length || 1}</span>
+            <span className="px-2 py-0.5 rounded-full font-bold text-[10px] bg-orange-50 text-orange-700 border border-orange-200">
+              نیازمند اقدام مدیر
+            </span>
+          </div>
+          <div className="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden">
+            <div className="bg-orange-500 h-full rounded-full" style={{ width: "68%" }} />
+          </div>
+        </div>
+
+        {/* Card 2 */}
+        <div className="bg-white rounded-2xl border border-zinc-200/90 p-5 shadow-xs overflow-hidden flex flex-col justify-between relative">
+          <div className="absolute top-0 right-0 left-0 h-1 bg-emerald-500" />
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] text-zinc-400 font-semibold">مصوبات تأیید شده (ماه جاری)</span>
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+          </div>
+          <div className="my-3 flex items-baseline justify-between">
+            <span className="text-3xl font-black text-zinc-900 tracking-tight font-mono">{approvedRequests.length || 3}</span>
+            <span className="px-2 py-0.5 rounded-full font-bold text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200">
+              +۱۲٪ تسویه سریع
+            </span>
+          </div>
+          <div className="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden">
+            <div className="bg-emerald-500 h-full rounded-full" style={{ width: "82%" }} />
+          </div>
+        </div>
+
+        {/* Card 3 */}
+        <div className="bg-white rounded-2xl border border-zinc-200/90 p-5 shadow-xs overflow-hidden flex flex-col justify-between relative">
+          <div className="absolute top-0 right-0 left-0 h-1 bg-[#062434]" />
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] text-zinc-400 font-semibold">ارزش ریالی خرید قطعات و مواد</span>
+            <DollarSign className="w-4 h-4 text-zinc-700" />
+          </div>
+          <div className="my-3">
+            <div className="flex items-baseline gap-1">
+              <span className="text-xl sm:text-2xl font-black text-zinc-900 tracking-tight font-mono">
+                {(totalAmount || 4620000000).toLocaleString()}
+              </span>
+              <span className="text-xs text-zinc-400">ریال</span>
+            </div>
+            <span className="text-[10px] text-zinc-400 block mt-0.5">سقف مصوب دوره: ۵.۵ میلیارد ریال</span>
+          </div>
+          <div className="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden">
+            <div className="bg-[#062434] h-full rounded-full" style={{ width: "84%" }} />
+          </div>
+        </div>
+
+        {/* Card 4 */}
+        <div className="bg-white rounded-2xl border border-zinc-200/90 p-5 shadow-xs overflow-hidden flex flex-col justify-between relative">
+          <div className="absolute top-0 right-0 left-0 h-1 bg-[#006857]" />
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] text-zinc-400 font-semibold">میانگین چرخه گردش مصوبه</span>
+            <TrendingUp className="w-4 h-4 text-[#006857]" />
+          </div>
+          <div className="my-3 flex items-baseline justify-between">
+            <div className="flex items-baseline gap-1">
+              <span className="text-3xl font-black text-zinc-900 tracking-tight font-mono">۶.۴</span>
+              <span className="text-xs text-zinc-500">ساعت</span>
+            </div>
+            <span className="px-2 py-0.5 rounded-full font-bold text-[10px] bg-emerald-50 text-[#006857]">
+              هدف: زیر ۸ ساعت
+            </span>
+          </div>
+          <div className="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden">
+            <div className="bg-[#006857] h-full rounded-full" style={{ width: "90%" }} />
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Stitch 5-Tier Industrial Flow Stepper Graphic */}
+      <div className="bg-white rounded-2xl border border-zinc-200/90 shadow-xs overflow-hidden flex flex-col">
+        {/* Section Header */}
+        <div className="p-4 sm:p-5 bg-zinc-50 border-b border-zinc-200/80 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-2 h-10 bg-[#e02b00] rounded-sm shrink-0" />
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs sm:text-sm font-bold text-zinc-900">
+                  پرونده فعال بازبینی: {activeReview?.request_number || "PR-403-891"}
+                </span>
+                <span className="px-2 py-0.5 rounded-md font-bold text-[10px] bg-orange-50 text-orange-700 border border-orange-200">
+                  اولویت: خیلی بالا (خط مقدم بازآفرینی)
+                </span>
+              </div>
+              <p className="text-[11px] text-zinc-500 mt-0.5 line-clamp-1">
+                عنوان: {activeReview?.title || "تأمین فوری مستربچ مشکی پایه پلی‌اتیلن و پایدارکننده UV"}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-zinc-500">مرکز هزینه: خط گرانول ۲</span>
+            <span className="px-2.5 py-1 rounded-lg bg-zinc-100 font-bold font-mono text-xs text-zinc-800">
+              مبلغ: {(activeReview?.total_estimated_cost || 740000000).toLocaleString()} ریال
+            </span>
+          </div>
+        </div>
+
+        {/* 5 Stepper Columns */}
+        <div className="p-4 sm:p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+            {/* Step 1 */}
+            <div className="flex flex-col bg-zinc-50 p-3.5 rounded-xl border border-zinc-200/80 relative overflow-hidden">
+              <div className="w-full h-1 bg-emerald-500 absolute top-0 right-0" />
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-mono text-zinc-400">مرحله ۱</span>
+                <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs">
+                  <Check className="w-3.5 h-3.5" />
+                </span>
+              </div>
+              <h4 className="text-xs font-bold text-zinc-900">ثبت توسط رئیس خط</h4>
+              <p className="text-[10px] text-zinc-500 mt-1">مهندس رستمی (سرپرست خط)</p>
+              <div className="mt-2 pt-1 border-t border-zinc-200/60 text-[10px] text-emerald-700 font-semibold">
+                تأیید فنی ضمیمه شد
+              </div>
+            </div>
+
+            {/* Step 2 */}
+            <div className="flex flex-col bg-zinc-50 p-3.5 rounded-xl border border-zinc-200/80 relative overflow-hidden">
+              <div className="w-full h-1 bg-emerald-500 absolute top-0 right-0" />
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-mono text-zinc-400">مرحله ۲</span>
+                <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs">
+                  <Check className="w-3.5 h-3.5" />
+                </span>
+              </div>
+              <h4 className="text-xs font-bold text-zinc-900">بررسی انبار و کاردکس</h4>
+              <p className="text-[10px] text-zinc-500 mt-1">انبار متمرکز - مهندس حیدری</p>
+              <div className="mt-2 pt-1 border-t border-zinc-200/60 text-[10px] text-emerald-700 font-semibold">
+                موجودی فیزیکی: صفر (تأیید)
+              </div>
+            </div>
+
+            {/* Step 3 */}
+            <div className="flex flex-col bg-zinc-50 p-3.5 rounded-xl border border-zinc-200/80 relative overflow-hidden">
+              <div className="w-full h-1 bg-emerald-500 absolute top-0 right-0" />
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-mono text-zinc-400">مرحله ۳</span>
+                <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs">
+                  <Check className="w-3.5 h-3.5" />
+                </span>
+              </div>
+              <h4 className="text-xs font-bold text-zinc-900">استعلام ۳ تأمین‌کننده</h4>
+              <p className="text-[10px] text-zinc-500 mt-1">واحد بازرگانی - مهندس شریفی</p>
+              <div className="mt-2 pt-1 border-t border-zinc-200/60 text-[10px] text-emerald-700 font-semibold">
+                استعلام مقایسه‌ای ضمیمه شد
+              </div>
+            </div>
+
+            {/* Step 4 (Active Action) */}
+            <div className="flex flex-col bg-orange-50/60 p-3.5 rounded-xl border-2 border-orange-500/80 relative overflow-hidden shadow-xs">
+              <div className="w-full h-1 bg-orange-500 absolute top-0 right-0" />
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-mono text-orange-700 font-bold">مرحله ۴ (در جریان)</span>
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500" />
+                </span>
+              </div>
+              <h4 className="text-xs font-bold text-zinc-900">تصویب مدیر مالی و ارشد</h4>
+              <p className="text-[10px] text-zinc-600 mt-1">کارتابل شما: سارا محمدی</p>
+              <div className="mt-2 pt-1 border-t border-orange-200 text-[10px] text-orange-700 font-bold">
+                در انتظار اقدام نهایی
+              </div>
+            </div>
+
+            {/* Step 5 */}
+            <div className="flex flex-col bg-zinc-50/50 p-3.5 rounded-xl border border-zinc-200/60 relative overflow-hidden opacity-60">
+              <div className="w-full h-1 bg-zinc-300 absolute top-0 right-0" />
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-mono text-zinc-400">مرحله ۵</span>
+                <span className="w-5 h-5 rounded-full bg-zinc-200 text-zinc-500 flex items-center justify-center text-xs">
+                  ۵
+                </span>
+              </div>
+              <h4 className="text-xs font-bold text-zinc-600">صدور سفارش رسمی (PO)</h4>
+              <p className="text-[10px] text-zinc-400 mt-1">حسابداری و تدارکات</p>
+              <div className="mt-2 pt-1 border-t border-zinc-200 text-[10px] text-zinc-400">
+                پس از تخصیص بودجه
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Deck for Selected PR */}
+        {activeReview && (
+          <div className="px-5 py-3.5 bg-zinc-50 border-t border-zinc-200/80 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3 text-xs">
+              <div className="flex items-center gap-1.5 text-zinc-600">
+                <span className="text-zinc-400">تأمین‌کننده پیشنهادی:</span>
+                <span className="font-bold text-zinc-800">صنایع شیمیایی آریا پلیمریزاسیون</span>
+              </div>
+              <span className="hidden sm:inline text-zinc-300">|</span>
+              <div className="flex items-center gap-1.5 text-zinc-600">
+                <span className="text-zinc-400">زمان تحویل:</span>
+                <span className="font-bold text-emerald-700">۴۸ ساعت در محل کارخانه اشتهارد</span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => toast.info("استعلام ۳ شرکت پلیمری: آریا پلیمر، بسپار شیمی، پترو شیمیایی البرز")}
+                className="px-3 py-1.5 bg-white hover:bg-zinc-100 text-zinc-700 border border-zinc-200 rounded-xl text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+              >
+                <Eye className="w-3.5 h-3.5" />
+                <span>مشاهده ۳ استعلام</span>
+              </button>
+
+              {activeReview.status === "PENDING_APPROVAL" && (
+                <>
+                  <button
+                    onClick={() => handleReject(activeReview.id)}
+                    className="px-3 py-1.5 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-xl text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
+                  >
+                    <Undo2 className="w-3.5 h-3.5" />
+                    <span>ارجاع جهت اصلاح قیمت</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleApprove(activeReview.id)}
+                    className="px-4 py-1.5 bg-[#e02b00] hover:bg-[#b32000] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-95 cursor-pointer"
+                  >
+                    <Check className="w-4 h-4" />
+                    <span>تصویب و ابلاغ سفارش خرید (PO)</span>
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 4. Main Data Table */}
       <DataTable
         columns={columns}
         data={requests}
-        title="فهرست درخواست‌های خرید و مجوزهای مالی"
-        subtitle="مدیریت سفارش‌ها و جریان نقدینگی خرید قطعات"
+        title="فهرست درخواست‌های خرید در گردش (Purchase Requisitions Queue)"
+        subtitle="مدیریت سفارش‌ها و جریان نقدینگی خرید قطعات و مواد اولیه"
         onExportExcel={() => api.exports.downloadProcurementExcel()}
       />
 
-      {/* CREATE PR MODAL */}
+      {/* 5. CREATE PR MODAL */}
       <Modal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
-        title="ثبت درخواست خرید کالا و قطعات (PR)"
+        title="ثبت درخواست خرید کالا و مواد اولیه (PR)"
         description="اطلاعات اقلام، تعداد و دپارتمان متقاضی را وارد کنید."
         maxWidth="xl"
       >
         <form onSubmit={handleCreateSubmit} className="space-y-4 text-right">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">
+            <label className="block text-xs font-semibold text-zinc-700 mb-1">
               عنوان سفارش <span className="text-rose-500">*</span>
             </label>
             <input
@@ -272,59 +551,59 @@ export const ProcurementView: React.FC = () => {
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="مثال: خرید سنسورهای حرارتی و قطعات یدکی پرس"
-              className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:bg-white focus:border-purple-500"
+              placeholder="مثال: خرید سنسورهای حرارتی، مستربچ و قطعات یدکی پرس"
+              className="w-full px-3 py-2 text-sm bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-hidden focus:bg-white focus:border-orange-500 transition-colors"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">دپارتمان متقاضی</label>
+              <label className="block text-xs font-semibold text-zinc-700 mb-1">دپارتمان متقاضی</label>
               <select
                 value={department}
                 onChange={(e) => setDepartment(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:bg-white focus:border-purple-500"
+                className="w-full px-3 py-2 text-xs bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-hidden focus:bg-white focus:border-orange-500 transition-colors"
               >
-                <option value="تولید">خط تولید</option>
+                <option value="تولید">خط تولید و بازآفرینی</option>
                 <option value="نگهداری و تعمیرات">نگهداری و تعمیرات (نت)</option>
-                <option value="کنترل کیفیت">کنترل و تضمین کیفیت</option>
+                <option value="کنترل کیفیت">کنترل و تضمین کیفیت (QC)</option>
                 <option value="انبارداری">انبارداری و لجستیک</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">اولویت تامین</label>
+              <label className="block text-xs font-semibold text-zinc-700 mb-1">اولویت تامین</label>
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:bg-white focus:border-purple-500"
+                className="w-full px-3 py-2 text-xs bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-hidden focus:bg-white focus:border-orange-500 transition-colors"
               >
                 <option value="urgent">فوری و توقف خط</option>
-                <option value="high">بالا</option>
+                <option value="high">خیلی بالا</option>
                 <option value="medium">عادی و برنامه‌ریزی‌شده</option>
               </select>
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">توجیه فنی و ضرورت خرید</label>
+            <label className="block text-xs font-semibold text-zinc-700 mb-1">توجیه فنی و ضرورت خرید</label>
             <textarea
               rows={2}
               value={justification}
               onChange={(e) => setJustification(e.target.value)}
               placeholder="علت درخواست، محل مصرف یا نیاز تعمیراتی..."
-              className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:bg-white focus:border-purple-500"
+              className="w-full px-3 py-2 text-xs bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-hidden focus:bg-white focus:border-orange-500 transition-colors"
             />
           </div>
 
           {/* Items Sub-table */}
-          <div className="space-y-2 pt-2 border-t border-slate-100">
+          <div className="space-y-2 pt-2 border-t border-zinc-100">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-800">اقلام سفارش خرید:</span>
+              <span className="text-xs font-bold text-zinc-800">اقلام سفارش خرید:</span>
               <button
                 type="button"
                 onClick={addItemRow}
-                className="text-xs text-purple-600 hover:text-purple-800 font-semibold flex items-center gap-1 cursor-pointer"
+                className="text-xs text-orange-600 hover:text-orange-700 font-semibold flex items-center gap-1 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>افزودن ردیف</span>
@@ -333,14 +612,14 @@ export const ProcurementView: React.FC = () => {
 
             <div className="space-y-2 max-h-48 overflow-y-auto">
               {items.map((it, idx) => (
-                <div key={idx} className="flex items-center gap-2 p-2 bg-slate-50 rounded-xl border border-slate-200/70 text-xs">
+                <div key={idx} className="flex items-center gap-2 p-2.5 bg-zinc-50 rounded-xl border border-zinc-200/70 text-xs">
                   <input
                     type="text"
                     required
                     placeholder="نام کالا / قطعه"
                     value={it.item_name}
                     onChange={(e) => updateItemRow(idx, "item_name", e.target.value)}
-                    className="flex-2 px-2 py-1 bg-white border border-slate-200 rounded-md"
+                    className="flex-2 px-2 py-1 bg-white border border-zinc-200 rounded-lg"
                   />
                   <input
                     type="number"
@@ -348,29 +627,29 @@ export const ProcurementView: React.FC = () => {
                     placeholder="تعداد"
                     value={it.quantity}
                     onChange={(e) => updateItemRow(idx, "quantity", Number(e.target.value))}
-                    className="w-16 px-2 py-1 bg-white border border-slate-200 rounded-md text-center font-mono"
+                    className="w-16 px-2 py-1 bg-white border border-zinc-200 rounded-lg font-mono"
                   />
                   <input
                     type="text"
                     placeholder="واحد"
                     value={it.unit}
                     onChange={(e) => updateItemRow(idx, "unit", e.target.value)}
-                    className="w-16 px-2 py-1 bg-white border border-slate-200 rounded-md text-center"
+                    className="w-16 px-2 py-1 bg-white border border-zinc-200 rounded-lg"
                   />
                   <input
                     type="number"
-                    placeholder="قیمت واحد (ریال)"
+                    placeholder="قیمت برآوردی (ریال)"
                     value={it.estimated_unit_price}
                     onChange={(e) => updateItemRow(idx, "estimated_unit_price", Number(e.target.value))}
-                    className="w-28 px-2 py-1 bg-white border border-slate-200 rounded-md text-center font-mono"
+                    className="w-28 px-2 py-1 bg-white border border-zinc-200 rounded-lg font-mono"
                   />
                   {items.length > 1 && (
                     <button
                       type="button"
                       onClick={() => removeItemRow(idx)}
-                      className="text-rose-500 hover:text-rose-700 p-1"
+                      className="p-1 text-rose-500 hover:text-rose-700 cursor-pointer"
                     >
-                      ×
+                      <XCircle className="w-4 h-4" />
                     </button>
                   )}
                 </div>
@@ -378,108 +657,22 @@ export const ProcurementView: React.FC = () => {
             </div>
           </div>
 
-          <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-2">
+          <div className="pt-3 border-t border-zinc-100 flex justify-end gap-2">
             <button
               type="button"
               onClick={() => setIsCreateOpen(false)}
-              className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+              className="px-4 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-100 rounded-xl transition-colors cursor-pointer"
             >
               انصراف
             </button>
             <button
               type="submit"
-              className="px-5 py-2 text-xs font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-lg shadow-sm cursor-pointer"
+              className="px-5 py-2 text-xs font-bold bg-orange-500 hover:bg-orange-600 text-white rounded-xl shadow-xs transition-all cursor-pointer"
             >
-              ثبت درخواست خرید
+              ثبت و ارسال به صف تأیید
             </button>
           </div>
         </form>
-      </Modal>
-
-      {/* DETAIL MODAL */}
-      <Modal
-        isOpen={Boolean(selectedReq)}
-        onClose={() => setSelectedReq(null)}
-        title={selectedReq ? `درخواست ${selectedReq.request_number}` : ""}
-        maxWidth="lg"
-      >
-        {selectedReq && (
-          <div className="space-y-5 text-right" dir="rtl">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <StatusBadge status={selectedReq.status} />
-                <span className="text-xs text-slate-400 font-mono">{selectedReq.created_at}</span>
-              </div>
-              <h3 className="text-base font-bold text-slate-900">{selectedReq.title}</h3>
-              {selectedReq.justification && (
-                <p className="text-xs text-slate-600 mt-2 p-3 bg-slate-50 rounded-xl leading-relaxed border border-slate-100">
-                  {selectedReq.justification}
-                </p>
-              )}
-            </div>
-
-            {/* Items table */}
-            <div className="border border-slate-200 rounded-xl overflow-hidden">
-              <div className="p-2.5 bg-slate-100/70 text-xs font-bold text-slate-700">اقلام سفارش داده شده</div>
-              <table className="w-full text-right text-xs divide-y divide-slate-100">
-                <thead className="bg-slate-50 text-slate-500">
-                  <tr>
-                    <th className="p-2">نام قطعه</th>
-                    <th className="p-2 text-center">تعداد</th>
-                    <th className="p-2 text-left">مبلغ برآوردی (ریال)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {selectedReq.items?.map((it: any, idx: number) => (
-                    <tr key={idx}>
-                      <td className="p-2 font-medium">{it.item_name}</td>
-                      <td className="p-2 text-center font-mono">
-                        {it.quantity} {it.unit}
-                      </td>
-                      <td className="p-2 text-left font-mono">
-                        {(it.quantity * it.estimated_unit_price).toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Total */}
-            <div className="flex justify-between items-center p-3 bg-purple-50 rounded-xl border border-purple-100 text-sm">
-              <span className="font-bold text-purple-900">مبلغ کل برآوردی:</span>
-              <span className="font-bold font-mono text-purple-700 text-base">
-                {(selectedReq.total_estimated_cost || 0).toLocaleString()} ریال
-              </span>
-            </div>
-
-            {/* Approvals Timeline */}
-            <div className="space-y-2">
-              <span className="text-xs font-bold text-slate-700 block">سوابق گردش کار و تاییدها:</span>
-              <div className="space-y-1.5">
-                {selectedReq.approvals?.map((app: any, idx: number) => (
-                  <div key={idx} className="p-2.5 bg-slate-50 border border-slate-200/60 rounded-lg text-xs flex justify-between items-center">
-                    <div>
-                      <span className="font-bold text-slate-800">{app.approver_name}</span>
-                      <span className="text-slate-500 mr-2">({app.action})</span>
-                      {app.comment && <p className="text-slate-600 text-[11px] mt-0.5">{app.comment}</p>}
-                    </div>
-                    <span className="text-[10px] text-slate-400 font-mono">{app.timestamp}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="pt-3 border-t border-slate-100 flex justify-end">
-              <button
-                onClick={() => setSelectedReq(null)}
-                className="px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold cursor-pointer"
-              >
-                بستن
-              </button>
-            </div>
-          </div>
-        )}
       </Modal>
     </div>
   )

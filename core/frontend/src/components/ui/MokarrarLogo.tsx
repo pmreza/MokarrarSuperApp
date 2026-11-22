@@ -5,6 +5,7 @@ interface MokarrarLogoProps {
   variant?: "dark" | "light"
   size?: "sm" | "md" | "lg"
   showSubtitle?: boolean
+  subtitle?: string
 }
 
 export const MokarrarLogo: React.FC<MokarrarLogoProps> = ({
@@ -12,6 +13,7 @@ export const MokarrarLogo: React.FC<MokarrarLogoProps> = ({
   variant = "light",
   size = "md",
   showSubtitle = true,
+  subtitle = "سامانه یکپارچه مکرر بازآفرین",
 }) => {
   const baseTextColor = variant === "light" ? "text-white" : "text-zinc-900"
   const fontSizes = {
@@ -37,7 +39,7 @@ export const MokarrarLogo: React.FC<MokarrarLogoProps> = ({
 
         {showSubtitle && (
           <span className="text-[10px] text-zinc-400 font-medium tracking-wide mt-0.5">
-            سامانه یکپارچه مکرر
+            {subtitle}
           </span>
         )}
       </div>

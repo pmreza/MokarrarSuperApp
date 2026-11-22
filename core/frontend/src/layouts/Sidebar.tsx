@@ -9,10 +9,16 @@ import {
   ShieldAlert,
   Activity,
   UserCheck,
+  X,
 } from "lucide-react"
 import { getFilteredNavigation, type NavigationItem } from "@/config/navigation.config"
 import { MokarrarLogo } from "@/components/ui/MokarrarLogo"
 import useAuth from "@/hooks/useAuth"
+
+interface SidebarProps {
+  isOpen?: boolean
+  onClose?: () => void
+}
 
 const ICON_MAP: Record<string, React.FC<{ className?: string }>> = {
   LayoutDashboard,
@@ -23,7 +29,7 @@ const ICON_MAP: Record<string, React.FC<{ className?: string }>> = {
   ShieldAlert,
 }
 
-export const Sidebar: React.FC = () => {
+export const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
   const location = useLocation()
   const { user } = useAuth()
 
@@ -34,15 +40,27 @@ export const Sidebar: React.FC = () => {
 
   return (
     <aside
-      className="w-64 shrink-0 bg-zinc-950 text-zinc-200 border-l border-zinc-800/80 flex flex-col h-screen select-none z-40"
+      className={`fixed inset-y-0 right-0 z-50 w-72 bg-zinc-950 text-zinc-200 border-l border-zinc-800/80 flex flex-col h-screen select-none transition-transform duration-300 ease-in-out lg:static lg:w-64 lg:translate-x-0 lg:shrink-0 ${
+        isOpen ? "translate-x-0 shadow-2xl" : "translate-x-full lg:translate-x-0"
+      }`}
       dir="rtl"
     >
       {/* Brand Header */}
-      <div className="h-16 flex items-center justify-between px-5 border-b border-zinc-800/80 bg-zinc-950">
+      <div className="h-16 flex items-center justify-between px-5 border-b border-zinc-800/80 bg-zinc-950 shrink-0">
         <MokarrarLogo variant="light" size="md" />
-        <span className="text-[10px] px-2 py-0.5 bg-orange-500/15 text-orange-400 border border-orange-500/30 rounded-full font-bold">
-          v1.0 صنعتی
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] px-2 py-0.5 bg-orange-500/15 text-orange-400 border border-orange-500/30 rounded-full font-bold">
+            v1.0 صنعتی
+          </span>
+          {/* Mobile close button */}
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 lg:hidden cursor-pointer"
+            title="بستن منو"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Navigation Links */}
@@ -62,6 +80,7 @@ export const Sidebar: React.FC = () => {
             <Link
               key={item.id}
               to={item.path}
+              onClick={() => onClose?.()}
               className={`flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs transition-all group ${
                 isActive
                   ? "bg-zinc-800/90 text-white font-bold border-r-2 border-orange-500 shadow-sm"
@@ -96,7 +115,7 @@ export const Sidebar: React.FC = () => {
       </nav>
 
       {/* User Session & Role Card */}
-      <div className="p-3 border-t border-zinc-800/80 bg-zinc-950/60">
+      <div className="p-3 border-t border-zinc-800/80 bg-zinc-950/60 shrink-0">
         <div className="p-3 bg-zinc-900/80 rounded-xl border border-zinc-800 space-y-2">
           <div className="flex items-center justify-between text-xs">
             <span className="text-zinc-200 font-bold truncate max-w-[130px]" title={user?.full_name || user?.email || ""}>
@@ -110,7 +129,7 @@ export const Sidebar: React.FC = () => {
           <div className="text-[11px] text-zinc-400 space-y-1">
             <div className="flex justify-between items-center">
               <span>شناسه کاربر:</span>
-              <span className="text-zinc-300 font-mono text-[10px]">{user?.email || "—"}</span>
+              <span className="text-zinc-300 font-mono text-[10px] truncate max-w-[110px]">{user?.email || "—"}</span>
             </div>
             <div className="flex justify-between items-center">
               <span>وضعیت اتصال:</span>

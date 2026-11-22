@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from "react"
 import { useLocation, useNavigate, Link } from "@tanstack/react-router"
-import { Search, Bell, LogOut, ChevronLeft, Plus, Settings } from "lucide-react"
+import { Search, Bell, LogOut, ChevronLeft, Plus, Settings, Menu } from "lucide-react"
 import { NAVIGATION_CONFIG } from "@/config/navigation.config"
 import { CommandPalette } from "@/components/ui/CommandPalette"
 import useAuth from "@/hooks/useAuth"
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  onOpenMobileMenu?: () => void
+}
+
+export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
   const [isPaletteOpen, setIsPaletteOpen] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
@@ -46,18 +50,27 @@ export const Header: React.FC = () => {
   return (
     <>
       <header
-        className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-zinc-200 bg-white/95 px-6 backdrop-blur-xs shadow-xs"
+        className="sticky top-0 z-30 flex h-16 shrink-0 items-center justify-between border-b border-zinc-200 bg-white/95 px-3 sm:px-6 backdrop-blur-xs shadow-xs"
         dir="rtl"
       >
         {/* Dynamic Title & Breadcrumbs */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Mobile hamburger menu toggle */}
+          <button
+            onClick={onOpenMobileMenu}
+            className="p-2 -mr-1 rounded-xl text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 lg:hidden cursor-pointer"
+            title="باز کردن منو"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+
           <div>
             <div className="flex items-center gap-1.5 text-xs text-zinc-400">
               <span className="font-bold text-zinc-900">مکرر</span>
               <ChevronLeft className="w-3.5 h-3.5 text-zinc-400" />
-              <span className="text-zinc-600 font-medium">{pageTitle}</span>
+              <span className="text-zinc-600 font-medium truncate max-w-[120px] sm:max-w-none">{pageTitle}</span>
             </div>
-            <h1 className="text-sm font-bold text-zinc-900 tracking-tight mt-0.5">
+            <h1 className="text-xs sm:text-sm font-bold text-zinc-900 tracking-tight mt-0.5 truncate max-w-[150px] sm:max-w-none">
               {pageTitle}
             </h1>
           </div>
@@ -68,7 +81,7 @@ export const Header: React.FC = () => {
         </div>
 
         {/* Global Actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3">
           {/* Global Search Input (Triggers Command Palette) */}
           <div
             onClick={() => setIsPaletteOpen(true)}
@@ -98,10 +111,11 @@ export const Header: React.FC = () => {
           {/* Action Button: Mokarrar Orange */}
           <button
             onClick={() => navigate({ to: "/tasks" })}
-            className="h-9 px-3.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm shadow-orange-500/20 transition-all active:scale-95"
+            className="h-8 sm:h-9 px-2.5 sm:px-3.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-sm shadow-orange-500/20 transition-all active:scale-95"
+            title="ثبت تسک / خرید"
           >
             <Plus className="w-4 h-4" />
-            <span>ثبت تسک / خرید</span>
+            <span className="hidden sm:inline">ثبت تسک / خرید</span>
           </button>
 
           <div className="h-4 w-px bg-zinc-200 mx-1 hidden sm:block" />

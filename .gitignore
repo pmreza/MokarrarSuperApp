@@ -40,12 +40,6 @@ yarn-error.log*
 # Upstream documentation media assets
 services/inventree/docs/
 
-# Agent workspace tracking
-agent.md
-
-
-
-
 # Database files
 *.db
 *.sqlite

@@ -19,6 +19,7 @@ def init_db(session: Session) -> None:
     from sqlmodel import SQLModel, text
     import app.modules.procurement.models  # noqa: F401
     import app.modules.webhooks.models  # noqa: F401
+    import app.modules.tasks.models  # noqa: F401
 
     SQLModel.metadata.create_all(engine)
     

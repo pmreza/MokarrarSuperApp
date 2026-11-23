@@ -215,10 +215,28 @@ export function AdminUserManagement() {
     }
   }
 
-  // Group permissions by category
-  const categories = Array.from(new Set(permsMeta.map((p) => p.category)))
+  // Group permissions by category safely
+  const categories = Array.from(new Set((permsMeta || []).map((p) => p?.category).filter(Boolean)))
 
-  const filteredUsers = users.filter((u) => {
+  const isAdmin = currentUser?.is_superuser || (currentUser as any)?.role === "admin"
+
+  if (!loading && currentUser && !isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 bg-white rounded-2xl border border-zinc-200 text-center gap-4 shadow-xs" dir="rtl">
+        <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center">
+          <ShieldCheck className="w-8 h-8" />
+        </div>
+        <h2 className="text-base font-bold text-zinc-900">
+          دسترسی محدود شده است
+        </h2>
+        <p className="text-xs text-zinc-500 max-w-md leading-relaxed">
+          مدیریت کاربران، صدور نقش‌ها و تخصیص سطوح دسترسی منحصراً در اختیار مدیر ارشد سامانه (برنامه‌نویس) می‌باشد.
+        </p>
+      </div>
+    )
+  }
+
+  const filteredUsers = (users || []).filter((u) => {
     const q = search.toLowerCase()
     return (
       (u.email || "").toLowerCase().includes(q) ||

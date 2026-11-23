@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>پروپوزال راهبردی استقرار سامانه جامع مکرر</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap');
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: 'Vazirmatn', Tahoma, Segoe UI, sans-serif;
+      background-color: #f8fafc;
+      color: #1e293b;
+      line-height: 1.8;
+      font-size: 12.5px;
+    }
+    
+    @page {
+      size: A4 portrait;
+      margin: 14mm 12mm 14mm 12mm;
+    }
+    
+    .page {
+      background: #ffffff;
+      padding: 28px 32px;
+      margin: 0 auto 20px auto;
+      max-width: 210mm;
+      min-height: 297mm;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      position: relative;
+    }
+    
+    @media print {
+      body {
+        background: #ffffff;
+      }
+      .page {
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+        page-break-after: always;
+        min-height: auto;
+      }
+    }
+    
+    /* Cover Page */
+    .cover-container {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 100%;
+      min-height: 255mm;
+      border: 2px solid #0284c7;
+      padding: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 60%, #e0f2fe 100%);
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 5px 12px;
+      background: #0284c7;
+      color: white;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    
+    .cover-title {
+      font-size: 26px;
+      font-weight: 900;
+      color: #0f172a;
+      margin: 16px 0 10px 0;
+      line-height: 1.4;
+    }
+    
+    .cover-subtitle {
+      font-size: 14px;
+      color: #475569;
+      font-weight: 500;
+      line-height: 1.6;
+    }
+    
+    .cover-meta {
+      border-top: 2px solid #bae6fd;
+      padding-top: 20px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      font-size: 11.5px;
+    }
+    
+    .meta-item strong {
+      color: #0369a1;
+      display: block;
+      margin-bottom: 3px;
+    }
+    
+    h2.section-title {
+      font-size: 17px;
+      font-weight: 800;
+      color: #0f172a;
+      border-bottom: 2px solid #0284c7;
+      padding-bottom: 6px;
+      margin: 18px 0 14px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    h3 {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #0369a1;
+      margin: 14px 0 6px 0;
+    }
+    
+    p {
+      margin-bottom: 10px;
+      text-align: justify;
+    }
+    
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+    
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    
+    .card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px;
+    }
+    
+    .card-primary {
+      border-right: 4px solid #0284c7;
+      background: #f0f9ff;
+    }
+    
+    .card-success {
+      border-right: 4px solid #10b981;
+      background: #ecfdf5;
+    }
+    
+    .card-warning {
+      border-right: 4px solid #f59e0b;
+      background: #fffbeb;
+    }
+    
+    .card-danger {
+      border-right: 4px solid #ef4444;
+      background: #fef2f2;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 11.5px;
+    }
+    
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 7px 10px;
+      text-align: right;
+    }
+    
+    th {
+      background: #e2e8f0;
+      color: #0f172a;
+      font-weight: 700;
+    }
+    
+    tr:nth-child(even) {
+      background: #f8fafc;
+    }
+    
+    .callout {
+      background: #eff6ff;
+      border: 1px dashed #3b82f6;
+      border-radius: 8px;
+      padding: 12px;
+      margin: 12px 0;
+      font-size: 11.5px;
+    }
+    
+    .phase-badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 9.5px;
+      font-weight: 700;
+    }
+    .phase-1 { background: #dbeafe; color: #1e40af; }
+    .phase-2 { background: #fef3c7; color: #92400e; }
+    .phase-3 { background: #dcfce7; color: #166534; }
+  </style>
+</head>
+<body>
+
+  <!-- PAGE 1: COVER -->
+  <div class="page">
+    <div class="cover-container">
+      <div>
+        <span class="badge">پروپوزال راهبردی و فنی</span>
+        <h1 class="cover-title">سامانه یکپارچه سازمانی و صنعتی «مُکَرَّر»<br>(Mokarrar Enterprise Super App)</h1>
+        <p class="cover-subtitle">
+          طرح جامع درگاه واحد عملیاتی، کاهش هزینه‌ها و ارتقای نظارت‌پذیری سازمانی در دوران رشد پرسنل با رویکرد پیاده‌سازی فازبندی‌شده
+        </p>
+      </div>
+
+      <div style="text-align: center; margin: 20px 0;">
+        <svg width="440" height="150" viewBox="0 0 500 170" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#0284c7" />
+              <stop offset="100%" stop-color="#0369a1" />
+            </linearGradient>
+          </defs>
+          <rect x="140" y="10" width="220" height="40" rx="6" fill="url(#g1)" />
+          <text x="250" y="35" fill="white" font-size="13" font-weight="bold" text-anchor="middle" font-family="Tahoma">هسته درگاه واحد مکرر (BFF Gateway)</text>
+          
+          <path d="M 250 50 L 250 75" stroke="#0284c7" stroke-width="2" />
+          <path d="M 90 75 L 410 75" stroke="#0284c7" stroke-width="2" />
+          <path d="M 90 75 L 90 95" stroke="#0284c7" stroke-width="2" />
+          <path d="M 250 75 L 250 95" stroke="#0284c7" stroke-width="2" />
+          <path d="M 410 75 L 410 95" stroke="#0284c7" stroke-width="2" />
+          
+          <rect x="15" y="95" width="150" height="55" rx="6" fill="#f0f9ff" stroke="#0284c7" stroke-width="2" />
+          <text x="90" y="120" fill="#0369a1" font-size="11" font-weight="bold" text-anchor="middle" font-family="Tahoma">فاز ۱: وظایف و کانبان</text>
+          <text x="90" y="138" fill="#0284c7" font-size="9.5" text-anchor="middle" font-family="Tahoma">Plane Engine (شروع نرم)</text>
+
+          <rect x="175" y="95" width="150" height="55" rx="6" fill="#f8fafc" stroke="#64748b" stroke-width="1.5" />
+          <text x="250" y="120" fill="#334155" font-size="11" font-weight="bold" text-anchor="middle" font-family="Tahoma">فاز ۲: تدارکات و خرید</text>
+          <text x="250" y="138" fill="#64748b" font-size="9.5" text-anchor="middle" font-family="Tahoma">گردش کار تایید و پرداخت</text>
+
+          <rect x="335" y="95" width="150" height="55" rx="6" fill="#f8fafc" stroke="#64748b" stroke-width="1.5" />
+          <text x="410" y="120" fill="#334155" font-size="11" font-weight="bold" text-anchor="middle" font-family="Tahoma">فاز ۳: انبار و ربات بله</text>
+          <text x="410" y="138" fill="#64748b" font-size="9.5" text-anchor="middle" font-family="Tahoma">InvenTree + Bale Bot</text>
+        </svg>
+      </div>
+
+      <div class="cover-meta">
+        <div class="meta-item">
+          <strong>مخاطب پروپوزال:</strong>
+          مدیریت ارشد و هیئت مدیره شرکت مکرر
+        </div>
+        <div class="meta-item">
+          <strong>تهیه‌کننده:</strong>
+          واحد فناوری اطلاعات و تیم راهبری سامانه
+        </div>
+        <div class="meta-item">
+          <strong>موضوع اصلی:</strong>
+          توجیه اقتصادی، مقیاس‌پذیری با افزایش پرسنل و شروع تدریجی
+        </div>
+        <div class="meta-item">
+          <strong>رویکرد پیاده‌سازی:</strong>
+          فاز ۱ بدون ریسک با داده‌های واقعی خطوط تولید
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 2: PROBLEM, ROI & ECONOMIC JUSTIFICATION -->
+  <div class="page">
+    <h2 class="section-title">۱. ضرورت حیاتی سیستم در دوران رشد پرسنل</h2>
+    <p>
+      سازمان در آستانه جهش و افزایش پرسنل است. در تیم‌های کوچک، هماهنگی به صورت شفاهی یا از طریق پیام‌رسان‌ها تا حدی پیش می‌رود؛ اما با رسیدن به ۱۰، ۳۰ یا ۵۰ نفر، <strong>هماهنگی سنتی دچار فروپاشی می‌شود</strong>: وظایف فراموش می‌شوند، مسئول مشخص نیست، مدیر از پیشرفت واقعی کارها بی‌خبر می‌ماند و هزینه‌های پنهان چند برابر می‌گردد.
+    </p>
+
+    <div class="grid-2">
+      <div class="card card-warning">
+        <h3 style="color: #b45309; margin-top: 0;">⚠️ خطرات رشد بدون سامانه نظارتی</h3>
+        <ul style="padding-right: 16px; font-size: 11.5px; line-height: 1.7;">
+          <li>ناتوانی مدیریت در سنجش بهره‌وری دقیق تک‌تک نیروهای جدید.</li>
+          <li>تکرار خرید اقلامی که در انبار موجود است به دلیل نبود شفافیت.</li>
+          <li>تاخیر در تعمیرات تجهیزات و خوابیدن خط تولید کارخانه.</li>
+          <li>سردرگمی کارگران و هدررفت ساعت‌های مفید کاری.</li>
+        </ul>
+      </div>
+
+      <div class="card card-success">
+        <h3 style="color: #047857; margin-top: 0;">✨ مزایای استقرار ستون فقرات مکرر</h3>
+        <ul style="padding-right: 16px; font-size: 11.5px; line-height: 1.7;">
+          <li>داشبورد مدیریتی یکپارچه با شاخص‌های لحظه‌ای کل شرکت.</li>
+          <li>مقیاس‌پذیری بالا: سیستم بدون افت عملکرد تا صدها پرسنل پاسخگوست.</li>
+          <li>کاهش ۳۵ درصدی زمان پیگیری تلفنی و جلسات گزارش‌دهی.</li>
+          <li>صدور گزارشات رسمی Excel و Word با یک کلیک جهت تصمیم‌گیری.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2 class="section-title">۲. ارزیابی جامع مزایا، معایب و مدیریت ریسک</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 20%;">ابعاد بررسی</th>
+          <th style="width: 40%;">مزایای رقابتی (Advantages)</th>
+          <th style="width: 40%;">معایب احتمالی و راهکار مهار آن (Mitigation)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>هزینه و لایسنس</strong></td>
+          <td>کاهش ۱۰۰٪ هزینه لایسنس؛ بدون پرداخت دلاری به شرکت‌های خارجی.</td>
+          <td><strong>عیب:</strong> هزینه اولیه پیکربندی سرور.<br><strong>راهکار:</strong> از سرورهای موجود شرکت استفاده می‌شود.</td>
+        </tr>
+        <tr>
+          <td><strong>فرهنگ و پذیرش پرسنل</strong></td>
+          <td>رابط کاربری کاملاً فارسی و روان (RTL) مطابق سلیقه کاربر ایرانی.</td>
+          <td><strong>عیب:</strong> مقاومت اولیه در برابر ثبت کارها.<br><strong>راهکار:</strong> شروع نرم صرفاً با فاز ۱ و ساده‌سازی دکمه‌ها.</td>
+        </tr>
+        <tr>
+          <td><strong>دسترسی کارگران ساده</strong></td>
+          <td>پشتیبانی از ربات پیام‌رسان بله در کنار نسخه وب برای گوشی‌های ساده.</td>
+          <td><strong>عیب:</strong> عدم تسلط کارگران به کامپیوتر.<br><strong>راهکار:</strong> ارسال تسک و ثبت وضعیت با دکمه‌های پیام‌رسان بله.</td>
+        </tr>
+        <tr>
+          <td><strong>امنیت و مالکیت داده</strong></td>
+          <td>تمام داده‌ها روی سرورهای اختصاصی خود شرکت محفوظ است.</td>
+          <td><strong>عیب:</strong> نیاز به نسخه پشتیبان منظم.<br><strong>راهکار:</strong> بک‌آپ اتوماتیک روزانه در داکر پیش‌بینی شده است.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- PAGE 3: PHASED ROLLOUT PLAN -->
+  <div class="page">
+    <h2 class="section-title">۳. استراتژی استقرار فازبندی‌شده (شروع نرم برای رفع مقاومت)</h2>
+    <div class="callout">
+      <strong>کلید طلایی پذیرش در سازمان:</strong> ما هرگز از روز اول کل سیستم را به پرسنل تحمیل نمی‌کنیم! پیشنهاد قطعی این است که در گام نخست فقط و فقط <strong>«موتور وظایف و کانبان (Plane)»</strong> فعال شود تا پرسنل بدون پیچیدگی و با لذت با آن همراه شوند.
+    </div>
+
+    <div class="card card-primary" style="margin-bottom: 12px;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; color: #0284c7;">🎯 فاز ۱ (پیشنهاد آغاز فوری): استقرار مدیریت تسک‌ها و وظایف</h3>
+        <span class="phase-badge phase-1">زمان‌بندی: ۲ هفته | ریسک سازمانی: صفر</span>
+      </div>
+      <p style="margin: 6px 0; font-size: 11.5px;">
+        پرسنل فقط با یک تخته بصری تمیز کار می‌کنند. مدیر عنوان تسک (مثل: «تعمیر پمپ هیدرولیک خط ۲») را تعیین و به نیرو محول می‌کند. کارمند با کشیدن کارت به ستون «در حال انجام» و گذاشتن کامنت یا چک‌لیست، پیشرفت را ثبت و در پایان «انجام شد» می‌زند.
+      </p>
+      <div style="font-size: 11px; color: #0369a1; font-weight: 600;">
+        دست‌آورد فاز ۱: ایجاد نظم تیمی، حذف فراموشی امور، شفاف‌سازی کارکرد افراد بدون تحمیل بار اضافی.
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom: 12px; border-right: 4px solid #f59e0b;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; color: #d97706;">📦 فاز ۲: مکانیزه‌سازی درخواست‌های خرید و مجوزهای مالی</h3>
+        <span class="phase-badge phase-2">زمان: ماه دوم پس از تثبیت فاز ۱</span>
+      </div>
+      <p style="margin: 6px 0; font-size: 11.5px;">
+        جایگزینی فرم‌های سنتی کاغذی خرید با کارتابل دیجیتال؛ پس از تایید مدیر و پرداخت، تسک تحویل خودکار در فاز ۱ ایجاد می‌شود.
+      </p>
+    </div>
+
+    <div class="card" style="margin-bottom: 14px; border-right: 4px solid #10b981;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="margin: 0; color: #059669;">🏭 فاز ۳: انبارداری قطعات و ربات بله برای پرسنل خط تولید</h3>
+        <span class="phase-badge phase-3">تکمیل سوپراپ مکرر</span>
+      </div>
+      <p style="margin: 6px 0; font-size: 11.5px;">
+        اتصال مستقیم سیستم انبارداری InvenTree به تسک‌های پلین و ورود ربات پیام‌رسان بله برای کارگران ساده بدون نیاز به کامپیوتر.
+      </p>
+    </div>
+
+    <h2 class="section-title">۴. نیازمندی‌های سخت‌افزاری و زیرساخت (Requirements)</h2>
+    <div class="grid-2">
+      <div class="card">
+        <h3 style="margin-top: 0; color: #0f172a;">🖥️ نیازمندی‌های سرور مرکزی (Host Server)</h3>
+        <ul style="padding-right: 16px; font-size: 11.5px; line-height: 1.8;">
+          <li><strong>پردازنده:</strong> ۴ هسته (Intel / AMD / ARM64).</li>
+          <li><strong>حافظه رم (RAM):</strong> ۸ تا ۱۶ گیگابایت (برای اجرای تمام کانتینرها).</li>
+          <li><strong>فضای دیسک:</strong> ۵۰ گیگابایت SSD.</li>
+          <li><strong>سیستم‌عامل:</strong> اوبونتو ۲۲.۰۴ / ۲۴.۰۴ یا سرور ویندوز با Docker.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top: 0; color: #0f172a;">📱 نیازمندی‌های پرسنل و کاربران (Clients)</h3>
+        <ul style="padding-right: 16px; font-size: 11.5px; line-height: 1.8;">
+          <li><strong>مدیران و کارشناسان:</strong> هر لپ‌تاپ یا کامپیوتر با مرورگر کروم/فایرفاکس.</li>
+          <li><strong>پرسنل خط تولید و انبار:</strong> هر نوع گوشی هوشمند عادی (اندروید/iOS) با پیام‌رسان بله یا مرورگر موبایل.</li>
+          <li><strong>بدون نیاز به نصب نرم‌افزار سنگین</strong> روی سیستم کاربران.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div style="margin-top: 25px; text-align: left; font-size: 11px; color: #64748b; border-top: 1px solid #cbd5e1; padding-top: 8px;">
+      پروپوزال راهبردی استقرار سامانه یکپارچه مکرر — ویرایش نهایی جهت طرح در جلسه مدیریت
+    </div>
+  </div>
+
+</body>
+</html>

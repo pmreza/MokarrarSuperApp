@@ -196,27 +196,13 @@ def delete_user_me(session: SessionDep, current_user: CurrentUser) -> Any:
     return Message(message="حساب کاربری حذف گردید.")
 
 
-@router.post("/signup", response_model=UserPublic)
-def register_user(session: SessionDep, user_in: UserRegister) -> Any:
-    """Allow public creation of new user accounts with default staff role."""
-    user = crud.get_user_by_email(session=session, email=user_in.email)
-    if user:
-        raise HTTPException(
-            status_code=400,
-            detail="کاربری با این شناسه / ایمیل قبلاً در سامانه ثبت شده است.",
-        )
-
-    user_create = UserCreate(
-        email=user_in.email,
-        password=user_in.password,
-        full_name=user_in.full_name,
-        role=UserRole.STAFF.value,
-        permissions=json.dumps(DEFAULT_ROLE_PERMISSIONS[UserRole.STAFF.value]),
-        is_active=True,
-        is_superuser=False,
+@router.post("/signup")
+def register_user() -> Any:
+    """Public registration is disabled. Users can only be created by system administrators."""
+    raise HTTPException(
+        status_code=403,
+        detail="ثبت‌نام عمومی در سامانه غیرفعال است. حساب‌های کاربری منحصراً توسط مدیر سیستم ایجاد می‌شوند.",
     )
-    user = crud.create_user(session=session, user_create=user_create)
-    return enrich_user_public(user)
 
 
 @router.get("/{user_id}", response_model=UserPublic)

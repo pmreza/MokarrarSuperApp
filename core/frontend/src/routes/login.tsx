@@ -136,16 +136,11 @@ function Login() {
               ورود به سامانه
             </LoadingButton>
 
-            {/* Signup / Register Link */}
-            <div className="mt-4 pt-4 border-t border-zinc-100 flex items-center justify-between text-xs">
-              <span className="text-zinc-500">حساب کاربری ندارید؟</span>
-              <RouterLink
-                to="/signup"
-                className="font-bold text-orange-600 hover:text-orange-700 transition-colors inline-flex items-center gap-1"
-              >
-                <span>ثبت‌نام کاربر جدید</span>
-                <ArrowRight className="w-3.5 h-3.5 rotate-180" />
-              </RouterLink>
+            {/* Corporate Closed Registration Notice */}
+            <div className="mt-4 pt-4 border-t border-zinc-100/80 text-center">
+              <span className="text-[11px] text-zinc-400">
+                حساب‌های کاربری منحصراً توسط مدیر سیستم تخصیص می‌یابند
+              </span>
             </div>
           </form>
         </Form>

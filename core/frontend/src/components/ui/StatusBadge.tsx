@@ -8,10 +8,11 @@ interface StatusBadgeProps {
 
 const STATUS_COLOR_MAP: Record<string, { bg: string; text: string; dot: string; label: string }> = {
   // Tasks
-  backlog: { bg: "bg-slate-100", text: "text-slate-700", dot: "bg-slate-500", label: "بک‌لاگ" },
-  todo: { bg: "bg-blue-50", text: "text-blue-700", dot: "bg-blue-500", label: "در انتظار" },
-  in_progress: { bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-500", label: "در حال انجام" },
-  done: { bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-600", label: "تکمیل شده" },
+  backlog: { bg: "bg-blue-50", text: "text-blue-700", dot: "bg-blue-500", label: "برنامه‌ریزی شده" },
+  todo: { bg: "bg-blue-50", text: "text-blue-700", dot: "bg-blue-500", label: "برنامه‌ریزی شده" },
+  in_progress: { bg: "bg-amber-50", text: "text-amber-800", dot: "bg-amber-500", label: "در حال اجرا" },
+  done: { bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-600", label: "اتمام یافته" },
+  cancelled: { bg: "bg-rose-50", text: "text-rose-700", dot: "bg-rose-500", label: "لغو شده" },
 
   // Priorities
   urgent: { bg: "bg-red-50", text: "text-red-700", dot: "bg-red-600", label: "فوری" },

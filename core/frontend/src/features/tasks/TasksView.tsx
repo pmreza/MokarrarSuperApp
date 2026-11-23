@@ -448,10 +448,10 @@ export const TasksView: React.FC = () => {
                 onChange={(e) => setNewState(e.target.value)}
                 className="w-full px-3 py-2 text-xs bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-hidden focus:bg-white focus:border-orange-500 transition-colors"
               >
-                <option value="backlog">در انتظار اقدام / آماده‌سازی</option>
-                <option value="todo">برنامه‌ریزی شده شیفت</option>
-                <option value="in_progress">در حال اجرا در سالن</option>
-                <option value="done">تکمیل شده و مستندسازی</option>
+                <option value="todo">برنامه‌ریزی شده</option>
+                <option value="in_progress">در حال اجرا</option>
+                <option value="done">اتمام یافته</option>
+                <option value="cancelled">لغو شده</option>
               </select>
             </div>
           </div>
@@ -545,26 +545,25 @@ export const TasksView: React.FC = () => {
             <div className="p-3 bg-zinc-50 rounded-xl border border-zinc-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <span className="text-xs font-bold text-zinc-700">تغییر وضعیت مرحله:</span>
               <div className="flex flex-wrap items-center gap-1.5">
-                {["backlog", "todo", "in_progress", "done"].map((st) => (
+                {[
+                  { id: "todo", label: "برنامه‌ریزی شده" },
+                  { id: "in_progress", label: "در حال اجرا" },
+                  { id: "done", label: "اتمام یافته" },
+                  { id: "cancelled", label: "لغو شده" },
+                ].map((st) => (
                   <button
-                    key={st}
+                    key={st.id}
                     onClick={() => {
-                      handleStateChange(selectedTask.id, st)
-                      setSelectedTask({ ...selectedTask, state: st })
+                      handleStateChange(selectedTask.id, st.id)
+                      setSelectedTask({ ...selectedTask, state: st.id })
                     }}
                     className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                      selectedTask.state === st
+                      selectedTask.state === st.id
                         ? "bg-orange-500 text-white shadow-xs"
                         : "bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-100"
                     }`}
                   >
-                    {st === "backlog"
-                      ? "آماده‌سازی"
-                      : st === "todo"
-                      ? "برنامه‌ریزی"
-                      : st === "in_progress"
-                      ? "در حال اجرا"
-                      : "تکمیل QC"}
+                    {st.label}
                   </button>
                 ))}
               </div>

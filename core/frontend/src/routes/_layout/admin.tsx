@@ -66,14 +66,19 @@ export function AdminUserManagement() {
   const [addFullName, setAddFullName] = useState("")
   const [addPassword, setAddPassword] = useState("")
   const [addRole, setAddRole] = useState("staff")
+  const [addLocation, setAddLocation] = useState("central_office")
   const [addPermissions, setAddPermissions] = useState<string[]>([])
 
   // Edit Form State
   const [editFullName, setEditFullName] = useState("")
   const [editRole, setEditRole] = useState("staff")
+  const [editLocation, setEditLocation] = useState("central_office")
   const [editPermissions, setEditPermissions] = useState<string[]>([])
   const [editIsActive, setEditIsActive] = useState(true)
   const [editNewPassword, setEditNewPassword] = useState("")
+
+  // Location filter state
+  const [selectedLocation, setSelectedLocation] = useState("all")
 
   const loadData = async () => {
     try {
@@ -132,6 +137,7 @@ export function AdminUserManagement() {
     setSelectedUser(u)
     setEditFullName(u.full_name || "")
     setEditRole(u.role || "staff")
+    setEditLocation(u.location || "central_office")
     setEditPermissions(u.permissions_list || [])
     setEditIsActive(u.is_active ?? true)
     setEditNewPassword("")
@@ -153,6 +159,7 @@ export function AdminUserManagement() {
         full_name: addFullName.trim() || undefined,
         password: addPassword.trim(),
         role: addRole,
+        location: addLocation,
         permissions: JSON.stringify(addPermissions),
         is_active: true,
       })
@@ -162,6 +169,7 @@ export function AdminUserManagement() {
       setAddFullName("")
       setAddPassword("")
       setAddRole("staff")
+      setAddLocation("central_office")
       setAddPermissions([])
       loadData()
     } catch (err: any) {
@@ -181,6 +189,7 @@ export function AdminUserManagement() {
       const payload: Record<string, any> = {
         full_name: editFullName.trim(),
         role: editRole,
+        location: editLocation,
         permissions: JSON.stringify(editPermissions),
         is_active: editIsActive,
       }
@@ -237,11 +246,15 @@ export function AdminUserManagement() {
   }
 
   const filteredUsers = (users || []).filter((u) => {
+    if (selectedLocation !== "all" && (u.location || "central_office") !== selectedLocation) {
+      return false
+    }
     const q = search.toLowerCase()
     return (
       (u.email || "").toLowerCase().includes(q) ||
       (u.full_name || "").toLowerCase().includes(q) ||
-      (u.role_title || "").toLowerCase().includes(q)
+      (u.role_title || "").toLowerCase().includes(q) ||
+      (u.location_title || "").toLowerCase().includes(q)
     )
   })
 
@@ -263,7 +276,7 @@ export function AdminUserManagement() {
               </span>
             </div>
             <p className="text-xs text-zinc-500 mt-1">
-              تعریف نام کاربری، تعیین نقش‌های پیش‌فرض سازمانی (مدیرعامل، مسئول خط، انبار، تدارکات) و تنظیم اختصاصی دسترسی‌ها
+              تعریف نام کاربری، تعیین شعبه سازمانی (دفتر مرکزی، ماهشهر، قزوین)، نقش‌های پیش‌فرض و مجوزهای اختصاصی
             </p>
           </div>
         </div>
@@ -291,15 +304,28 @@ export function AdminUserManagement() {
 
       {/* 2. Filter & Stats Bar */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-xl border border-zinc-200/90 shadow-2xs">
-        <div className="relative w-full sm:w-80">
-          <input
-            type="text"
-            placeholder="جستجوی نام، نام کاربری یا نقش..."
-            value={search}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
-            className="w-full text-right text-xs pr-9 pl-3 h-9 rounded-lg bg-zinc-50 border border-zinc-200"
-          />
-          <Search className="w-4 h-4 text-zinc-400 absolute right-3 top-2.5 pointer-events-none" />
+        <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+          <div className="relative w-full sm:w-72">
+            <input
+              type="text"
+              placeholder="جستجوی نام، نام کاربری یا نقش..."
+              value={search}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value)}
+              className="w-full text-right text-xs pr-9 pl-3 h-9 rounded-lg bg-zinc-50 border border-zinc-200"
+            />
+            <Search className="w-4 h-4 text-zinc-400 absolute right-3 top-2.5 pointer-events-none" />
+          </div>
+
+          <select
+            value={selectedLocation}
+            onChange={(e) => setSelectedLocation(e.target.value)}
+            className="h-9 px-3 text-xs bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-700 font-medium focus:bg-white focus:border-orange-500 transition-colors cursor-pointer"
+          >
+            <option value="all">محل خدمت: همه موقعیت‌ها</option>
+            <option value="central_office">🏢 دفتر مرکزی</option>
+            <option value="mahshahr_plant">🏭 کارخانه ماهشهر</option>
+            <option value="qazvin_plant">🏭 کارخانه قزوین</option>
+          </select>
         </div>
 
         <div className="flex items-center gap-4 text-xs font-medium text-zinc-500">
@@ -317,6 +343,7 @@ export function AdminUserManagement() {
               <tr>
                 <th className="py-3.5 px-5">کاربر و نام کامل</th>
                 <th className="py-3.5 px-4">نام کاربری / شناسه</th>
+                <th className="py-3.5 px-4">محل خدمت / شعبه</th>
                 <th className="py-3.5 px-4">نقش سازمانی</th>
                 <th className="py-3.5 px-4">دسترسی‌های فعال</th>
                 <th className="py-3.5 px-4 text-center">وضعیت</th>
@@ -350,6 +377,23 @@ export function AdminUserManagement() {
 
                       <td className="py-3.5 px-4 font-mono text-zinc-600 font-semibold">
                         {u.email}
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        {(() => {
+                          const loc = u.location || "central_office"
+                          const locMap: Record<string, { label: string; badge: string }> = {
+                            central_office: { label: "🏢 دفتر مرکزی", badge: "bg-blue-50 text-blue-700 border-blue-200" },
+                            mahshahr_plant: { label: "🏭 کارخانه ماهشهر", badge: "bg-orange-50 text-orange-700 border-orange-200" },
+                            qazvin_plant: { label: "🏭 کارخانه قزوین", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+                          }
+                          const item = locMap[loc] || locMap.central_office
+                          return (
+                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${item.badge}`}>
+                              {item.label}
+                            </span>
+                          )
+                        })()}
                       </td>
 
                       <td className="py-3.5 px-4">
@@ -407,7 +451,7 @@ export function AdminUserManagement() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-zinc-400">
+                  <td colSpan={7} className="py-8 text-center text-zinc-400">
                     {loading ? "در حال بارگذاری..." : "هیچ کاربری یافت نشد."}
                   </td>
                 </tr>
@@ -471,20 +515,35 @@ export function AdminUserManagement() {
 
             <div>
               <label className="text-xs font-semibold text-zinc-700 block mb-1">
-                انتخاب الگوی نقش پیش‌فرض سازمانی
+                محل خدمت سازمانی
               </label>
               <select
-                value={addRole}
-                onChange={(e) => handleRoleChangeForAdd(e.target.value)}
+                value={addLocation}
+                onChange={(e) => setAddLocation(e.target.value)}
                 className="w-full h-9 px-2 text-xs bg-zinc-50 border border-zinc-200 rounded-lg text-right font-bold"
               >
-                {rolesMeta.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.title}
-                  </option>
-                ))}
+                <option value="central_office">🏢 دفتر مرکزی</option>
+                <option value="mahshahr_plant">🏭 کارخانه ماهشهر</option>
+                <option value="qazvin_plant">🏭 کارخانه قزوین</option>
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-zinc-700 block mb-1">
+              انتخاب الگوی نقش پیش‌فرض سازمانی
+            </label>
+            <select
+              value={addRole}
+              onChange={(e) => handleRoleChangeForAdd(e.target.value)}
+              className="w-full h-9 px-2 text-xs bg-zinc-50 border border-zinc-200 rounded-lg text-right font-bold"
+            >
+              {rolesMeta.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.title}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Granular Permissions Checkboxes */}
@@ -578,20 +637,35 @@ export function AdminUserManagement() {
 
             <div>
               <label className="text-xs font-semibold text-zinc-700 block mb-1">
-                الگوی نقش پیش‌فرض سازمانی
+                محل خدمت سازمانی
               </label>
               <select
-                value={editRole}
-                onChange={(e) => handleRoleChangeForEdit(e.target.value)}
+                value={editLocation}
+                onChange={(e) => setEditLocation(e.target.value)}
                 className="w-full h-9 px-2 text-xs bg-zinc-50 border border-zinc-200 rounded-lg text-right font-bold"
               >
-                {rolesMeta.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.title}
-                  </option>
-                ))}
+                <option value="central_office">🏢 دفتر مرکزی</option>
+                <option value="mahshahr_plant">🏭 کارخانه ماهشهر</option>
+                <option value="qazvin_plant">🏭 کارخانه قزوین</option>
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-semibold text-zinc-700 block mb-1">
+              الگوی نقش پیش‌فرض سازمانی
+            </label>
+            <select
+              value={editRole}
+              onChange={(e) => handleRoleChangeForEdit(e.target.value)}
+              className="w-full h-9 px-2 text-xs bg-zinc-50 border border-zinc-200 rounded-lg text-right font-bold"
+            >
+              {rolesMeta.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.title}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

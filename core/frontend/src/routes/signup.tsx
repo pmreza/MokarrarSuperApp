@@ -89,18 +89,13 @@ function SignUp() {
 
   return (
     <AuthLayout>
-      <div className="bg-white p-6 sm:p-8 rounded-2xl border border-zinc-200/90 shadow-md">
+      <div className="bg-white/95 backdrop-blur-xl p-8 sm:p-10 rounded-3xl border border-zinc-200/90 shadow-xl shadow-zinc-900/5 transition-all">
         {/* Brand Header */}
-        <div className="flex flex-col items-center gap-3 text-center mb-6">
-          <MokarrarLogo variant="dark" size="md" subtitle="سامانه جامع یکپارچه مکرر بازآفرین" />
-          <div className="mt-2">
-            <h1 className="text-base font-bold text-zinc-900 tracking-tight">
-              تعریف و ثبت‌نام حساب پرسنلی جدید
-            </h1>
-            <p className="text-xs text-zinc-500 mt-0.5">
-              مشخصات خود را جهت عضویت در سامانه وارد نمایید
-            </p>
-          </div>
+        <div className="flex flex-col items-center gap-2 text-center mb-6">
+          <MokarrarLogo variant="dark" size="lg" showSubtitle={false} />
+          <h1 className="text-sm font-bold text-zinc-800 mt-2">
+            ثبت‌نام پرسنل جدید
+          </h1>
         </div>
 
         <Form {...form}>

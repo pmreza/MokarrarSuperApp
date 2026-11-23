@@ -52,7 +52,7 @@ apiClient.interceptors.response.use(
 export const api = {
   // Tasks (Plane Proxy)
   tasks: {
-    list: async (params?: { state?: string; search?: string }) => {
+    list: async (params?: { state?: string; search?: string; location?: string }) => {
       const res = await apiClient.get("/tasks/", { params })
       return res.data
     },
@@ -66,6 +66,7 @@ export const api = {
       priority?: string
       state?: string
       assignee_name?: string
+      location?: string
       due_date?: string
       tags?: string[]
     }) => {
@@ -197,6 +198,7 @@ export const api = {
       full_name?: string
       password: string
       role?: string
+      location?: string
       permissions?: string
       is_active?: boolean
       is_superuser?: boolean

@@ -71,13 +71,20 @@ class PlaneAdapter:
             logger.warning("Plane get_members failed: %s. Using mock fallback.", e)
             return MOCK_MEMBERS
 
-    def _get_db_tasks(self, state: str | None = None, search: str | None = None) -> list[dict[str, Any]]:
+    def _get_db_tasks(
+        self,
+        state: str | None = None,
+        search: str | None = None,
+        location: str | None = None,
+    ) -> list[dict[str, Any]]:
         try:
             with Session(engine) as session:
                 records = session.exec(select(TaskRecord)).all()
                 tasks = [r.to_dict() for r in records]
                 if state:
                     tasks = [t for t in tasks if t.get("state") == state]
+                if location and location != "all":
+                    tasks = [t for t in tasks if t.get("location") == location]
                 if search:
                     s = search.lower()
                     tasks = [
@@ -100,6 +107,7 @@ class PlaneAdapter:
                     priority=task_data.get("priority", "medium"),
                     assignee_name=task_data.get("assignee_name", "تخصیص‌نیافته"),
                     assignee_id=task_data.get("assignee_id", "unassigned"),
+                    location=task_data.get("location", "central_office"),
                     due_date=task_data.get("due_date", "1405/04/01"),
                     created_at=task_data.get("created_at", datetime.now(UTC).isoformat()),
                     tags=json.dumps(task_data.get("tags", []), ensure_ascii=False),
@@ -130,6 +138,8 @@ class PlaneAdapter:
                     record.priority = updates["priority"]
                 if "assignee_name" in updates and updates["assignee_name"] is not None:
                     record.assignee_name = updates["assignee_name"]
+                if "location" in updates and updates["location"] is not None:
+                    record.location = updates["location"]
                 if "due_date" in updates and updates["due_date"] is not None:
                     record.due_date = updates["due_date"]
                 if "tags" in updates and updates["tags"] is not None:
@@ -155,19 +165,24 @@ class PlaneAdapter:
             logger.error("Error deleting task from DB: %s", e)
             return False
 
-    async def get_tasks(self, state: str | None = None, search: str | None = None) -> list[dict[str, Any]]:
+    async def get_tasks(
+        self,
+        state: str | None = None,
+        search: str | None = None,
+        location: str | None = None,
+    ) -> list[dict[str, Any]]:
         if self.mock_mode:
-            return self._get_db_tasks(state=state, search=search)
+            return self._get_db_tasks(state=state, search=search, location=location)
         try:
             endpoint = f"/api/v1/workspaces/{self.workspace_slug}/projects/{self.project_id}/issues/"
             params = {}
             if state:
                 params["state"] = state
             res = await self.http_adapter.request("GET", endpoint, params=params)
-            return res if isinstance(res, list) else self._get_db_tasks(state=state, search=search)
+            return res if isinstance(res, list) else self._get_db_tasks(state=state, search=search, location=location)
         except Exception as e:
             logger.warning("Plane get_tasks failed: %s. Using persistent DB fallback.", e)
-            return self._get_db_tasks(state=state, search=search)
+            return self._get_db_tasks(state=state, search=search, location=location)
 
     async def get_task(self, task_id: str) -> dict[str, Any] | None:
         if self.mock_mode:
@@ -197,6 +212,7 @@ class PlaneAdapter:
         state: str = "todo",
         assignee_name: str | None = None,
         assignee_id: str | None = None,
+        location: str = "central_office",
         due_date: str | None = None,
         tags: list[str] | None = None,
         metadata: dict[str, Any] | None = None,
@@ -209,6 +225,7 @@ class PlaneAdapter:
             "state": state,
             "assignee_name": assignee_name or "تخصیص‌نیافته",
             "assignee_id": assignee_id or "unassigned",
+            "location": location or "central_office",
             "due_date": due_date or "1405/04/01",
             "created_at": datetime.now(UTC).isoformat(),
             "tags": tags or ["عمومی"],

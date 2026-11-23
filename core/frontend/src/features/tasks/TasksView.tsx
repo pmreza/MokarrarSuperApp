@@ -34,7 +34,7 @@ export const TasksView: React.FC = () => {
   const [viewMode, setViewMode] = useState<"kanban" | "table">("kanban")
 
   // Filters
-  const [selectedLine, setSelectedLine] = useState<string>("all")
+  const [selectedLocation, setSelectedLocation] = useState<string>("all")
   const [selectedPriority, setSelectedPriority] = useState<string>("all")
 
   // Modals state
@@ -47,8 +47,9 @@ export const TasksView: React.FC = () => {
   const [newPriority, setNewPriority] = useState("medium")
   const [newState, setNewState] = useState("todo")
   const [newAssignee, setNewAssignee] = useState("مهندس محمد رضایی")
+  const [newLocation, setNewLocation] = useState("central_office")
   const [newDueDate, setNewDueDate] = useState("۱۴۰۵/۰۳/۲۰")
-  const [newTags, setNewTags] = useState("تولید, فنی")
+  const [newTags, setNewTags] = useState("عمومی, اداری")
 
   // Comment input
   const [commentText, setCommentText] = useState("")
@@ -94,6 +95,7 @@ export const TasksView: React.FC = () => {
         priority: newPriority,
         state: newState,
         assignee_name: newAssignee,
+        location: newLocation,
         due_date: newDueDate,
         tags: newTags.split(",").map((s) => s.trim()).filter(Boolean),
       })
@@ -137,9 +139,10 @@ export const TasksView: React.FC = () => {
     }
   }
 
-  // Filter tasks based on selections
+  // Filter tasks based on location and priority
   const filteredTasks = tasks.filter((t) => {
     if (selectedPriority !== "all" && t.priority !== selectedPriority) return false
+    if (selectedLocation !== "all" && (t.location || "central_office") !== selectedLocation) return false
     return true
   })
 
@@ -165,6 +168,24 @@ export const TasksView: React.FC = () => {
           )}
         </div>
       ),
+    },
+    {
+      header: "محل / شعبه",
+      cell: (row) => {
+        const loc = row.location || "central_office"
+        const titles: Record<string, { label: string; badge: string }> = {
+          central_office: { label: "دفتر مرکزی", badge: "bg-blue-50 text-blue-700 border-blue-200" },
+          mahshahr_plant: { label: "کارخانه ماهشهر", badge: "bg-orange-50 text-orange-700 border-orange-200" },
+          qazvin_plant: { label: "کارخانه قزوین", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+        }
+        const item = titles[loc] || { label: "دفتر مرکزی", badge: "bg-zinc-100 text-zinc-700 border-zinc-200" }
+        return (
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${item.badge}`}>
+            {item.label}
+          </span>
+        )
+      },
+      className: "w-32 text-center",
     },
     {
       header: "وضعیت",
@@ -265,16 +286,16 @@ export const TasksView: React.FC = () => {
             فیلترها:
           </span>
 
-          {/* Filter Line */}
+          {/* Filter Location / Factory */}
           <select
-            value={selectedLine}
-            onChange={(e) => setSelectedLine(e.target.value)}
-            className="px-2.5 py-1 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-700 text-xs focus:bg-white focus:border-orange-500 transition-colors"
+            value={selectedLocation}
+            onChange={(e) => setSelectedLocation(e.target.value)}
+            className="px-2.5 py-1 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-700 text-xs focus:bg-white focus:border-orange-500 transition-colors font-medium"
           >
-            <option value="all">خطوط کارخانه: همه خطوط (A1, B2, C3)</option>
-            <option value="A1">خط A1 - بازیافت حرارتی و کمپاندینگ</option>
-            <option value="B2">خط B2 - اکستروژن و گرانول‌سازی</option>
-            <option value="C3">خط C3 - شستشو و کنترل کیفی</option>
+            <option value="all">موقعیت و شعب: همه (دفتر مرکزی و کارخانه‌ها)</option>
+            <option value="central_office">🏢 دفتر مرکزی</option>
+            <option value="mahshahr_plant">🏭 کارخانه ماهشهر</option>
+            <option value="qazvin_plant">🏭 کارخانه قزوین</option>
           </select>
 
           {/* Filter Priority */}
@@ -437,6 +458,19 @@ export const TasksView: React.FC = () => {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
+              <label className="block text-xs font-semibold text-zinc-700 mb-1">محل سازمانی / شعبه</label>
+              <select
+                value={newLocation}
+                onChange={(e) => setNewLocation(e.target.value)}
+                className="w-full px-3 py-2 text-xs bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-hidden focus:bg-white focus:border-orange-500 transition-colors font-medium"
+              >
+                <option value="central_office">🏢 دفتر مرکزی</option>
+                <option value="mahshahr_plant">🏭 کارخانه ماهشهر</option>
+                <option value="qazvin_plant">🏭 کارخانه قزوین</option>
+              </select>
+            </div>
+
+            <div>
               <label className="block text-xs font-semibold text-zinc-700 mb-1">مسئول اجرا</label>
               <select
                 value={newAssignee}
@@ -444,15 +478,15 @@ export const TasksView: React.FC = () => {
                 className="w-full px-3 py-2 text-xs bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-hidden focus:bg-white focus:border-orange-500 transition-colors"
               >
                 <option value="مهندس محمد رضایی">مهندس محمد رضایی (نگهداری و تعمیرات)</option>
-                <option value="تکنسین رضا احمدی">تکنسین رضا احمدی (خط A1)</option>
-                <option value="مهندس علی راد">مهندس علی راد (اکسترودر B2)</option>
+                <option value="مهندس رضا احمدی">مهندس رضا احمدی (سرپرست تولید)</option>
+                <option value="مهندس علی راد">مهندس علی راد (مهندسی فرآیند)</option>
                 <option value="خانم مهندس مرادی">خانم مهندس مرادی (کنترل کیفیت QC)</option>
               </select>
             </div>
+          </div>
 
-            <div>
-              <JalaliDatePicker value={newDueDate} onChange={setNewDueDate} />
-            </div>
+          <div>
+            <JalaliDatePicker value={newDueDate} onChange={setNewDueDate} />
           </div>
 
           <div>

@@ -71,18 +71,10 @@ function Login() {
 
   return (
     <AuthLayout>
-      <div className="bg-white p-6 sm:p-8 rounded-2xl border border-zinc-200/90 shadow-md">
-        {/* Brand Header with Mokarrar Logo */}
-        <div className="flex flex-col items-center gap-3 text-center mb-6">
-          <MokarrarLogo variant="dark" size="md" subtitle="سامانه جامع یکپارچه مکرر بازآفرین" />
-          <div className="mt-2">
-            <h1 className="text-base font-bold text-zinc-900 tracking-tight">
-              ورود به پورتال سازمانی
-            </h1>
-            <p className="text-xs text-zinc-500 mt-0.5">
-              نام کاربری و رمز عبور اختصاصی خود را وارد نمایید
-            </p>
-          </div>
+      <div className="bg-white/95 backdrop-blur-xl p-8 sm:p-10 rounded-3xl border border-zinc-200/90 shadow-xl shadow-zinc-900/5 transition-all">
+        {/* Brand Header: Pure Mokarrar Logo Only */}
+        <div className="flex justify-center mb-8">
+          <MokarrarLogo variant="dark" size="lg" showSubtitle={false} />
         </div>
 
         <Form {...form}>
@@ -101,7 +93,7 @@ function Login() {
                     <div className="relative">
                       <Input
                         placeholder="مثال: admin@mokarrar.com یا شناسه سازمانی"
-                        className="text-right text-xs pr-9 pl-3 h-10 rounded-xl bg-zinc-50 border-zinc-200"
+                        className="text-right text-xs pr-9 pl-3 h-10 rounded-xl bg-zinc-50 border-zinc-200 focus:bg-white transition-colors"
                         {...field}
                       />
                       <User className="w-4 h-4 text-zinc-400 absolute right-3 top-3 pointer-events-none" />
@@ -124,7 +116,7 @@ function Login() {
                     <div className="relative">
                       <PasswordInput
                         placeholder="رمز عبور شما"
-                        className="text-right text-xs pr-9 pl-3 h-10 rounded-xl bg-zinc-50 border-zinc-200 font-mono"
+                        className="text-right text-xs pr-9 pl-3 h-10 rounded-xl bg-zinc-50 border-zinc-200 font-mono focus:bg-white transition-colors"
                         {...field}
                       />
                       <Lock className="w-4 h-4 text-zinc-400 absolute right-3 top-3 pointer-events-none" />
@@ -138,21 +130,21 @@ function Login() {
             <LoadingButton
               type="submit"
               loading={loginMutation.isPending}
-              className="bg-orange-500 hover:bg-orange-600 text-white h-10 rounded-xl text-xs font-bold shadow-xs transition-all mt-2 cursor-pointer"
+              className="bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white h-11 rounded-xl text-xs font-bold shadow-md shadow-orange-500/20 active:scale-[0.99] transition-all mt-2 cursor-pointer"
             >
-              <LogIn className="w-4 h-4 ml-1.5" />
+              <LogIn className="w-4 h-4 ml-2" />
               ورود به سامانه
             </LoadingButton>
 
             {/* Signup / Register Link */}
-            <div className="mt-3 pt-4 border-t border-zinc-100 flex items-center justify-between text-xs">
+            <div className="mt-4 pt-4 border-t border-zinc-100 flex items-center justify-between text-xs">
               <span className="text-zinc-500">حساب کاربری ندارید؟</span>
               <RouterLink
                 to="/signup"
-                className="font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1 transition-colors"
+                className="font-bold text-orange-600 hover:text-orange-700 transition-colors inline-flex items-center gap-1"
               >
-                <UserPlus className="w-3.5 h-3.5" />
-                <span>ثبت نام کاربر جدید</span>
+                <span>ثبت‌نام کاربر جدید</span>
+                <ArrowRight className="w-3.5 h-3.5 rotate-180" />
               </RouterLink>
             </div>
           </form>
@@ -161,4 +153,5 @@ function Login() {
     </AuthLayout>
   )
 }
+
 export default Login

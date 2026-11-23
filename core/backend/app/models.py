@@ -18,6 +18,7 @@ class UserBase(SQLModel):
     is_superuser: bool = False
     role: str = Field(default=UserRole.STAFF.value, max_length=50)
     full_name: str | None = Field(default=None, max_length=255)
+    location: str = Field(default="central_office", max_length=100)  # central_office, mahshahr_plant, qazvin_plant
     permissions: str = Field(default="[]", max_length=2000)  # JSON-encoded array of permissions
 
 
@@ -39,6 +40,7 @@ class UserUpdate(SQLModel):
     is_superuser: bool | None = None
     role: str | None = None
     full_name: str | None = Field(default=None, max_length=255)
+    location: str | None = Field(default=None, max_length=100)
     permissions: str | None = None
     password: str | None = Field(default=None, min_length=6, max_length=128)
 
@@ -118,6 +120,7 @@ class UserPublic(UserBase):
     created_at: datetime | None = None
     permissions_list: list[str] = []
     role_title: str | None = None
+    location_title: str | None = None
 
 
 class UsersPublic(SQLModel):

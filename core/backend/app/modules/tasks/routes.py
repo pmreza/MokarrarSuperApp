@@ -15,6 +15,7 @@ class TaskCreateRequest(BaseModel):
     state: str = Field(default="todo")
     assignee_name: str | None = None
     assignee_id: str | None = None
+    location: str = Field(default="central_office")
     due_date: str | None = None
     tags: list[str] = []
 
@@ -26,6 +27,7 @@ class TaskUpdateRequest(BaseModel):
     state: str | None = None
     assignee_name: str | None = None
     assignee_id: str | None = None
+    location: str | None = None
     due_date: str | None = None
     tags: list[str] | None = None
 
@@ -39,9 +41,10 @@ async def list_tasks(
     current_user: CurrentUser,
     state: str | None = Query(None, description="Filter by state id"),
     search: str | None = Query(None, description="Search term in title or description"),
+    location: str | None = Query(None, description="Filter by location (central_office, mahshahr_plant, qazvin_plant)"),
 ) -> list[dict[str, Any]]:
     """List enriched tasks from Plane task engine with filtering."""
-    return await plane_adapter.get_tasks(state=state, search=search)
+    return await plane_adapter.get_tasks(state=state, search=search, location=location)
 
 
 @router.get("/states")
@@ -95,6 +98,7 @@ async def create_task(req: TaskCreateRequest, current_user: CurrentUser) -> dict
         state=req.state,
         assignee_name=req.assignee_name or current_user.full_name,
         assignee_id=req.assignee_id,
+        location=req.location,
         due_date=req.due_date,
         tags=req.tags,
     )

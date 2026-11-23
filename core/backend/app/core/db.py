@@ -36,6 +36,18 @@ def init_db(session: Session) -> None:
     except Exception:
         session.rollback()
 
+    try:
+        session.exec(text("ALTER TABLE \"user\" ADD COLUMN IF NOT EXISTS location VARCHAR(100) DEFAULT 'central_office'"))
+        session.commit()
+    except Exception:
+        session.rollback()
+
+    try:
+        session.exec(text("ALTER TABLE task_records ADD COLUMN IF NOT EXISTS location VARCHAR(100) DEFAULT 'central_office'"))
+        session.commit()
+    except Exception:
+        session.rollback()
+
     # Pre-seed initial accounts:
     # 1. Super Admin / Developer
     super_admin = session.exec(

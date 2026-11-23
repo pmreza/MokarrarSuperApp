@@ -14,6 +14,7 @@ class TaskRecord(SQLModel, table=True):
     priority: str = Field(default="medium", max_length=50)
     assignee_name: str = Field(default="تخصیص‌نیافته", max_length=255)
     assignee_id: str = Field(default="unassigned", max_length=100)
+    location: str = Field(default="central_office", max_length=100)
     due_date: str = Field(default="1405/04/01", max_length=50)
     created_at: str = Field(default="")
     tags: str = Field(default="[]")
@@ -36,6 +37,13 @@ class TaskRecord(SQLModel, table=True):
         except Exception:
             parsed_comments = []
 
+        location_map = {
+            "central_office": "دفتر مرکزی",
+            "mahshahr_plant": "کارخانه ماهشهر",
+            "qazvin_plant": "کارخانه قزوین",
+        }
+        loc = getattr(self, "location", "central_office") or "central_office"
+
         return {
             "id": self.id,
             "title": self.title,
@@ -44,6 +52,8 @@ class TaskRecord(SQLModel, table=True):
             "priority": self.priority,
             "assignee_name": self.assignee_name,
             "assignee_id": self.assignee_id,
+            "location": loc,
+            "location_title": location_map.get(loc, loc),
             "due_date": self.due_date,
             "created_at": self.created_at or datetime.now(UTC).isoformat(),
             "tags": parsed_tags,

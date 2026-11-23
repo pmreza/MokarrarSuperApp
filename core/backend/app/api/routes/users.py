@@ -36,21 +36,38 @@ from app.utils import generate_new_account_email, send_email
 router = APIRouter(prefix="/users", tags=["users"])
 
 
+LOCATION_TITLES = {
+    "central_office": "دفتر مرکزی",
+    "mahshahr_plant": "کارخانه ماهشهر",
+    "qazvin_plant": "کارخانه قزوین",
+}
+
+LOCATIONS_LIST = [
+    {"id": "central_office", "title": "دفتر مرکزی"},
+    {"id": "mahshahr_plant", "title": "کارخانه ماهشهر"},
+    {"id": "qazvin_plant", "title": "کارخانه قزوین"},
+]
+
+
 def enrich_user_public(u: User) -> UserPublic:
     perms = u.get_permissions_list()
     role_title = ROLE_TITLES.get(u.role, u.role)
+    user_loc = getattr(u, "location", "central_office") or "central_office"
+    location_title = LOCATION_TITLES.get(user_loc, user_loc)
     return UserPublic.model_validate(
         u,
         update={
             "permissions_list": perms,
             "role_title": role_title,
+            "location": user_loc,
+            "location_title": location_title,
         },
     )
 
 
 @router.get("/roles/metadata")
 def get_roles_metadata(current_user: CurrentUser) -> dict[str, Any]:
-    """Return available roles and granular permissions list for UI management."""
+    """Return available roles, locations and granular permissions list for UI management."""
     available_permissions = [
         {"id": "tasks:view", "name": "مشاهده وظایف و کانبان", "category": "مدیریت تسک‌ها"},
         {"id": "tasks:create", "name": "ثبت تسک جدید", "category": "مدیریت تسک‌ها"},
@@ -79,6 +96,7 @@ def get_roles_metadata(current_user: CurrentUser) -> dict[str, Any]:
 
     return {
         "roles": roles,
+        "locations": LOCATIONS_LIST,
         "permissions": available_permissions,
     }
 

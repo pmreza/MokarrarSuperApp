@@ -12,6 +12,18 @@ from app.core.config import settings
 
 class UserRole(str, Enum):
     ADMIN = "admin"
+    # Central Office Roles
+    OFFICE_MANAGER = "office_manager"
+    MANAGING_DIRECTOR = "managing_director"
+    RD_ENVIRONMENT = "rd_environment"
+    IT_SUPERVISOR = "it_supervisor"
+    # Factory Roles (Mahshahr / Qazvin)
+    PRODUCTION_MANAGER = "production_manager"
+    QC_SUPERVISOR = "qc_supervisor"
+    MAINTENANCE_SUPERVISOR = "maintenance_supervisor"
+    ADMIN_STAFF = "admin_staff"
+    WORKER = "worker"
+    # Backward Compatibility
     CEO = "ceo"
     LINE_SUPERVISOR = "line_supervisor"
     WAREHOUSE_MANAGER = "warehouse_manager"
@@ -23,13 +35,49 @@ class UserRole(str, Enum):
 
 ROLE_TITLES: dict[str, str] = {
     UserRole.ADMIN.value: "مدیر ارشد سامانه (برنامه‌نویس)",
-    UserRole.CEO.value: "مدیرعامل",
-    UserRole.LINE_SUPERVISOR.value: "مسئول خط تولید",
-    UserRole.WAREHOUSE_MANAGER.value: "مسئول انبار و قطعات",
-    UserRole.PROCUREMENT_OFFICER.value: "مسئول تدارکات و خرید",
-    UserRole.MANAGER.value: "مدیر میانی",
-    UserRole.STAFF.value: "تکنسین / کارمند خط",
-    UserRole.WAREHOUSE.value: "انباردار",
+    # Central Office
+    UserRole.OFFICE_MANAGER.value: "مدیر دفتر",
+    UserRole.MANAGING_DIRECTOR.value: "مدیریت عامل",
+    UserRole.RD_ENVIRONMENT.value: "محیط زیست / تحقیق و توسعه",
+    UserRole.IT_SUPERVISOR.value: "سرپرست آی‌تی",
+    # Factory / Plants
+    UserRole.PRODUCTION_MANAGER.value: "مدیر خط تولید",
+    UserRole.QC_SUPERVISOR.value: "سرپرست کنترل کیفیت",
+    UserRole.MAINTENANCE_SUPERVISOR.value: "سرپرست تعمیر و نگهداری",
+    UserRole.ADMIN_STAFF.value: "کارمند اداری",
+    UserRole.WORKER.value: "کارگر",
+    # Legacy / Compatibility
+    UserRole.CEO.value: "مدیریت عامل",
+    UserRole.LINE_SUPERVISOR.value: "مدیر خط تولید",
+    UserRole.WAREHOUSE_MANAGER.value: "سرپرست تعمیر و نگهداری",
+    UserRole.PROCUREMENT_OFFICER.value: "کارمند اداری",
+    UserRole.MANAGER.value: "مدیر دفتر",
+    UserRole.STAFF.value: "کارگر",
+    UserRole.WAREHOUSE.value: "کارمند اداری",
+}
+
+LOCATION_ROLES: dict[str, list[dict[str, str]]] = {
+    "central_office": [
+        {"role": UserRole.OFFICE_MANAGER.value, "title": "مدیر دفتر"},
+        {"role": UserRole.MANAGING_DIRECTOR.value, "title": "مدیریت عامل"},
+        {"role": UserRole.RD_ENVIRONMENT.value, "title": "محیط زیست / تحقیق و توسعه"},
+        {"role": UserRole.IT_SUPERVISOR.value, "title": "سرپرست آی‌تی"},
+        {"role": UserRole.ADMIN.value, "title": "مدیر ارشد سامانه (برنامه‌نویس)"},
+    ],
+    "mahshahr_plant": [
+        {"role": UserRole.PRODUCTION_MANAGER.value, "title": "مدیر خط تولید"},
+        {"role": UserRole.QC_SUPERVISOR.value, "title": "سرپرست کنترل کیفیت"},
+        {"role": UserRole.MAINTENANCE_SUPERVISOR.value, "title": "سرپرست تعمیر و نگهداری"},
+        {"role": UserRole.ADMIN_STAFF.value, "title": "کارمند اداری"},
+        {"role": UserRole.WORKER.value, "title": "کارگر"},
+    ],
+    "qazvin_plant": [
+        {"role": UserRole.PRODUCTION_MANAGER.value, "title": "مدیر خط تولید"},
+        {"role": UserRole.QC_SUPERVISOR.value, "title": "سرپرست کنترل کیفیت"},
+        {"role": UserRole.MAINTENANCE_SUPERVISOR.value, "title": "سرپرست تعمیر و نگهداری"},
+        {"role": UserRole.ADMIN_STAFF.value, "title": "کارمند اداری"},
+        {"role": UserRole.WORKER.value, "title": "کارگر"},
+    ],
 }
 
 DEFAULT_ROLE_PERMISSIONS: dict[str, list[str]] = {
@@ -39,6 +87,46 @@ DEFAULT_ROLE_PERMISSIONS: dict[str, list[str]] = {
         "inventory:view", "inventory:stock_in", "inventory:stock_out",
         "reports:view", "reports:export", "users:manage"
     ],
+    UserRole.OFFICE_MANAGER.value: [
+        "tasks:view", "tasks:create", "tasks:update",
+        "procurement:view", "procurement:create", "procurement:approve",
+        "reports:view", "reports:export"
+    ],
+    UserRole.MANAGING_DIRECTOR.value: [
+        "tasks:view", "tasks:create", "tasks:update",
+        "procurement:view", "procurement:create", "procurement:approve", "procurement:pay",
+        "inventory:view", "reports:view", "reports:export"
+    ],
+    UserRole.RD_ENVIRONMENT.value: [
+        "tasks:view", "tasks:create", "tasks:update",
+        "reports:view"
+    ],
+    UserRole.IT_SUPERVISOR.value: [
+        "tasks:view", "tasks:create", "tasks:update", "tasks:delete",
+        "reports:view", "users:manage"
+    ],
+    UserRole.PRODUCTION_MANAGER.value: [
+        "tasks:view", "tasks:create", "tasks:update",
+        "procurement:view", "procurement:create",
+        "inventory:view", "reports:view"
+    ],
+    UserRole.QC_SUPERVISOR.value: [
+        "tasks:view", "tasks:create", "tasks:update",
+        "reports:view"
+    ],
+    UserRole.MAINTENANCE_SUPERVISOR.value: [
+        "tasks:view", "tasks:create", "tasks:update",
+        "inventory:view", "inventory:stock_in", "inventory:stock_out",
+        "procurement:create"
+    ],
+    UserRole.ADMIN_STAFF.value: [
+        "tasks:view", "tasks:create", "tasks:update",
+        "procurement:view", "procurement:create"
+    ],
+    UserRole.WORKER.value: [
+        "tasks:view", "tasks:update"
+    ],
+    # Legacy fallbacks
     UserRole.CEO.value: [
         "tasks:view", "tasks:create", "tasks:update",
         "procurement:view", "procurement:create", "procurement:approve", "procurement:pay",

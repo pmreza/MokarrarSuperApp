@@ -14,6 +14,7 @@ from app.api.deps import (
 from app.core.config import settings
 from app.core.security import (
     DEFAULT_ROLE_PERMISSIONS,
+    LOCATION_ROLES,
     ROLE_TITLES,
     UserRole,
     get_password_hash,
@@ -97,6 +98,7 @@ def get_roles_metadata(current_user: CurrentUser) -> dict[str, Any]:
     return {
         "roles": roles,
         "locations": LOCATIONS_LIST,
+        "location_roles": LOCATION_ROLES,
         "permissions": available_permissions,
     }
 

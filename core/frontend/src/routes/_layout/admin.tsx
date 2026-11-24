@@ -15,7 +15,33 @@ import {
   User,
   Sliders,
   Check,
+  Building2,
+  Factory,
 } from "lucide-react"
+
+export const LOCATION_ROLE_OPTIONS: Record<string, { id: string; title: string }[]> = {
+  central_office: [
+    { id: "office_manager", title: "مدیر دفتر" },
+    { id: "managing_director", title: "مدیریت عامل" },
+    { id: "rd_environment", title: "محیط زیست / تحقیق و توسعه" },
+    { id: "it_supervisor", title: "سرپرست آی‌تی" },
+    { id: "admin", title: "مدیر ارشد سامانه (برنامه‌نویس)" },
+  ],
+  mahshahr_plant: [
+    { id: "production_manager", title: "مدیر خط تولید" },
+    { id: "qc_supervisor", title: "سرپرست کنترل کیفیت" },
+    { id: "maintenance_supervisor", title: "سرپرست تعمیر و نگهداری" },
+    { id: "admin_staff", title: "کارمند اداری" },
+    { id: "worker", title: "کارگر" },
+  ],
+  qazvin_plant: [
+    { id: "production_manager", title: "مدیر خط تولید" },
+    { id: "qc_supervisor", title: "سرپرست کنترل کیفیت" },
+    { id: "maintenance_supervisor", title: "سرپرست تعمیر و نگهداری" },
+    { id: "admin_staff", title: "کارمند اداری" },
+    { id: "worker", title: "کارگر" },
+  ],
+}
 import { api } from "@/services/api"
 import { toast } from "sonner"
 import { Modal } from "@/components/ui/Modal"
@@ -102,12 +128,30 @@ export function AdminUserManagement() {
     loadData()
   }, [])
 
+  // Handle Location Change in Add Dialog
+  const handleLocationChangeForAdd = (loc: string) => {
+    setAddLocation(loc)
+    const available = LOCATION_ROLE_OPTIONS[loc] || LOCATION_ROLE_OPTIONS.central_office
+    const firstRole = available[0]?.id || "staff"
+    handleRoleChangeForAdd(firstRole)
+  }
+
   // Handle Preset Role Selection in Add Dialog
   const handleRoleChangeForAdd = (newRole: string) => {
     setAddRole(newRole)
     const roleDef = rolesMeta.find((r) => r.id === newRole)
     if (roleDef) {
       setAddPermissions([...roleDef.default_permissions])
+    }
+  }
+
+  // Handle Location Change in Edit Dialog
+  const handleLocationChangeForEdit = (loc: string) => {
+    setEditLocation(loc)
+    const available = LOCATION_ROLE_OPTIONS[loc] || LOCATION_ROLE_OPTIONS.central_office
+    if (!available.some((r) => r.id === editRole)) {
+      const firstRole = available[0]?.id || "staff"
+      handleRoleChangeForEdit(firstRole)
     }
   }
 
@@ -284,7 +328,7 @@ export function AdminUserManagement() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => {
-              handleRoleChangeForAdd("staff")
+              handleLocationChangeForAdd("central_office")
               setIsAddOpen(true)
             }}
             className="h-10 px-4 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs transition-all btn-pressable cursor-pointer"
@@ -322,9 +366,9 @@ export function AdminUserManagement() {
             className="h-9 px-3 text-xs bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-700 font-medium focus:bg-white focus:border-orange-500 transition-colors cursor-pointer"
           >
             <option value="all">محل خدمت: همه موقعیت‌ها</option>
-            <option value="central_office">🏢 دفتر مرکزی</option>
-            <option value="mahshahr_plant">🏭 کارخانه ماهشهر</option>
-            <option value="qazvin_plant">🏭 کارخانه قزوین</option>
+            <option value="central_office">دفتر مرکزی</option>
+            <option value="mahshahr_plant">کارخانه ماهشهر</option>
+            <option value="qazvin_plant">کارخانه قزوین</option>
           </select>
         </div>
 
@@ -382,15 +426,21 @@ export function AdminUserManagement() {
                       <td className="py-3.5 px-4">
                         {(() => {
                           const loc = u.location || "central_office"
-                          const locMap: Record<string, { label: string; badge: string }> = {
-                            central_office: { label: "🏢 دفتر مرکزی", badge: "bg-blue-50 text-blue-700 border-blue-200" },
-                            mahshahr_plant: { label: "🏭 کارخانه ماهشهر", badge: "bg-orange-50 text-orange-700 border-orange-200" },
-                            qazvin_plant: { label: "🏭 کارخانه قزوین", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+                          const isOffice = loc === "central_office"
+                          const locConfig: Record<string, { label: string; badge: string }> = {
+                            central_office: { label: "دفتر مرکزی", badge: "bg-blue-50 text-blue-700 border-blue-200" },
+                            mahshahr_plant: { label: "کارخانه ماهشهر", badge: "bg-orange-50 text-orange-700 border-orange-200" },
+                            qazvin_plant: { label: "کارخانه قزوین", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" },
                           }
-                          const item = locMap[loc] || locMap.central_office
+                          const item = locConfig[loc] || locConfig.central_office
                           return (
-                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${item.badge}`}>
-                              {item.label}
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold border ${item.badge}`}>
+                              {isOffice ? (
+                                <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                              ) : (
+                                <Factory className="w-3.5 h-3.5 text-orange-600" />
+                              )}
+                              <span>{item.label}</span>
                             </span>
                           )
                         })()}
@@ -515,30 +565,30 @@ export function AdminUserManagement() {
 
             <div>
               <label className="text-xs font-semibold text-zinc-700 block mb-1">
-                محل خدمت سازمانی
+                گام ۱: محل خدمت سازمانی <span className="text-rose-500">*</span>
               </label>
               <select
                 value={addLocation}
-                onChange={(e) => setAddLocation(e.target.value)}
-                className="w-full h-9 px-2 text-xs bg-zinc-50 border border-zinc-200 rounded-lg text-right font-bold"
+                onChange={(e) => handleLocationChangeForAdd(e.target.value)}
+                className="w-full h-9 px-2 text-xs bg-zinc-50 border border-zinc-200 rounded-lg text-right font-bold text-zinc-800"
               >
-                <option value="central_office">🏢 دفتر مرکزی</option>
-                <option value="mahshahr_plant">🏭 کارخانه ماهشهر</option>
-                <option value="qazvin_plant">🏭 کارخانه قزوین</option>
+                <option value="central_office">دفتر مرکزی</option>
+                <option value="mahshahr_plant">کارخانه ماهشهر</option>
+                <option value="qazvin_plant">کارخانه قزوین</option>
               </select>
             </div>
           </div>
 
           <div>
             <label className="text-xs font-semibold text-zinc-700 block mb-1">
-              انتخاب الگوی نقش پیش‌فرض سازمانی
+              گام ۲: سمت و نقش سازمانی در این محل <span className="text-rose-500">*</span>
             </label>
             <select
               value={addRole}
               onChange={(e) => handleRoleChangeForAdd(e.target.value)}
-              className="w-full h-9 px-2 text-xs bg-zinc-50 border border-zinc-200 rounded-lg text-right font-bold"
+              className="w-full h-9 px-2 text-xs bg-zinc-50 border border-zinc-200 rounded-lg text-right font-bold text-zinc-800"
             >
-              {rolesMeta.map((r) => (
+              {(LOCATION_ROLE_OPTIONS[addLocation] || []).map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.title}
                 </option>
@@ -637,30 +687,30 @@ export function AdminUserManagement() {
 
             <div>
               <label className="text-xs font-semibold text-zinc-700 block mb-1">
-                محل خدمت سازمانی
+                گام ۱: محل خدمت سازمانی
               </label>
               <select
                 value={editLocation}
-                onChange={(e) => setEditLocation(e.target.value)}
-                className="w-full h-9 px-2 text-xs bg-zinc-50 border border-zinc-200 rounded-lg text-right font-bold"
+                onChange={(e) => handleLocationChangeForEdit(e.target.value)}
+                className="w-full h-9 px-2 text-xs bg-zinc-50 border border-zinc-200 rounded-lg text-right font-bold text-zinc-800"
               >
-                <option value="central_office">🏢 دفتر مرکزی</option>
-                <option value="mahshahr_plant">🏭 کارخانه ماهشهر</option>
-                <option value="qazvin_plant">🏭 کارخانه قزوین</option>
+                <option value="central_office">دفتر مرکزی</option>
+                <option value="mahshahr_plant">کارخانه ماهشهر</option>
+                <option value="qazvin_plant">کارخانه قزوین</option>
               </select>
             </div>
           </div>
 
           <div>
             <label className="text-xs font-semibold text-zinc-700 block mb-1">
-              الگوی نقش پیش‌فرض سازمانی
+              گام ۲: سمت و نقش سازمانی در این محل
             </label>
             <select
               value={editRole}
               onChange={(e) => handleRoleChangeForEdit(e.target.value)}
-              className="w-full h-9 px-2 text-xs bg-zinc-50 border border-zinc-200 rounded-lg text-right font-bold"
+              className="w-full h-9 px-2 text-xs bg-zinc-50 border border-zinc-200 rounded-lg text-right font-bold text-zinc-800"
             >
-              {rolesMeta.map((r) => (
+              {(LOCATION_ROLE_OPTIONS[editLocation] || []).map((r) => (
                 <option key={r.id} value={r.id}>
                   {r.title}
                 </option>

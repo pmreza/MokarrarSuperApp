@@ -51,7 +51,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => 
         <MokarrarLogo variant="light" size="sm" subtitle="مکرر بازآفرین • سامانه صنعتی" />
         <div className="flex items-center gap-1.5">
           <span className="text-[10px] px-2 py-0.5 bg-orange-500/15 text-orange-400 border border-orange-500/30 rounded-full font-bold">
-            v2.4 صنعتی
+            سامانه یکپارچه
           </span>
           {/* Mobile close button */}
           <button
@@ -151,7 +151,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => 
               <span>وضعیت اسکادا:</span>
               <span className="text-emerald-400 font-bold flex items-center gap-1 text-[10px]">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                متصل (SCADA v2.4)
+                متصل (برخط)
               </span>
             </div>
           </div>

@@ -293,9 +293,9 @@ export const TasksView: React.FC = () => {
             className="px-2.5 py-1 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-700 text-xs focus:bg-white focus:border-orange-500 transition-colors font-medium"
           >
             <option value="all">موقعیت و شعب: همه (دفتر مرکزی و کارخانه‌ها)</option>
-            <option value="central_office">🏢 دفتر مرکزی</option>
-            <option value="mahshahr_plant">🏭 کارخانه ماهشهر</option>
-            <option value="qazvin_plant">🏭 کارخانه قزوین</option>
+            <option value="central_office">دفتر مرکزی</option>
+            <option value="mahshahr_plant">کارخانه ماهشهر</option>
+            <option value="qazvin_plant">کارخانه قزوین</option>
           </select>
 
           {/* Filter Priority */}
@@ -464,9 +464,9 @@ export const TasksView: React.FC = () => {
                 onChange={(e) => setNewLocation(e.target.value)}
                 className="w-full px-3 py-2 text-xs bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-hidden focus:bg-white focus:border-orange-500 transition-colors font-medium"
               >
-                <option value="central_office">🏢 دفتر مرکزی</option>
-                <option value="mahshahr_plant">🏭 کارخانه ماهشهر</option>
-                <option value="qazvin_plant">🏭 کارخانه قزوین</option>
+                <option value="central_office">دفتر مرکزی</option>
+                <option value="mahshahr_plant">کارخانه ماهشهر</option>
+                <option value="qazvin_plant">کارخانه قزوین</option>
               </select>
             </div>
 

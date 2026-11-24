@@ -130,7 +130,7 @@ export const DashboardView: React.FC = () => {
             </h1>
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 font-bold text-[11px] border border-emerald-500/20">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              اسکادا نسخه ۲.۴ متصل
+              ارتباط اسکادا برخط و پایدار
             </span>
             <span className="hidden md:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-zinc-100 text-zinc-600 font-semibold text-[11px]">
               شیفت صبح (A) - سرپرست: مهندس کریمی

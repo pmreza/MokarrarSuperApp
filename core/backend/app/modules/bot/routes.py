@@ -1,5 +1,6 @@
 import logging
 import re
+import time
 from typing import Any
 import httpx
 from fastapi import APIRouter, Request, BackgroundTasks
@@ -8,7 +9,7 @@ from sqlmodel import Session, select, col
 
 from app.core.config import settings
 from app.core.db import engine
-from app.core.security import ROLE_TITLES
+from app.core.security import ROLE_TITLES, verify_password
 from app.models import User
 from app.modules.tasks.models import TaskRecord
 from app.adapters.inventree_adapter import inventree_adapter
@@ -22,6 +23,9 @@ LOCATION_TITLES = {
     "qazvin_plant": "کارخانه قزوین",
 }
 
+# In-memory authentication state tracker for 2FA flow: {chat_id: {"stage": ..., "user_id": ..., "phone": ..., "time": ...}}
+PENDING_AUTH: dict[str, dict[str, Any]] = {}
+
 
 class BotMessage(BaseModel):
     chat_id: int | str
@@ -32,14 +36,11 @@ def clean_phone_number(raw: str) -> str:
     """Normalize Persian/Arabic digits and international formats to 09xxxxxxxxx."""
     if not raw:
         return ""
-    # Map Persian & Arabic numerals to English
     persian_digits = "۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩"
     english_digits = "01234567890123456789"
     trans = str.maketrans(persian_digits, english_digits)
     cleaned = raw.translate(trans)
-    # Remove all non-digit characters
     cleaned = re.sub(r"\D", "", cleaned)
-    # Handle country codes
     if cleaned.startswith("0098"):
         cleaned = "0" + cleaned[4:]
     elif cleaned.startswith("98"):
@@ -121,7 +122,8 @@ async def get_bale_bot_status():
 async def bale_webhook(request: Request, background_tasks: BackgroundTasks):
     """
     Handle incoming webhooks from Bale Messenger Bot API.
-    Authenticates users against PostgreSQL/SQLite database via phone_number or bale_chat_id.
+    Strictly enforces 2-Factor Authentication (Phone Number + Organization Password)
+    before granting access to any task, inventory, or internal workflow data.
     """
     try:
         data = await request.json()
@@ -144,19 +146,144 @@ async def bale_webhook(request: Request, background_tasks: BackgroundTasks):
         return {"status": "ok", "detail": "No chat id found"}
 
     chat_id_str = str(chat_id)
+    bale_token = getattr(settings, "BALE_BOT_TOKEN", None)
 
-    # 1. Check if user is already linked with this bale_chat_id in DB
     with Session(engine) as session:
         user = session.exec(select(User).where(User.bale_chat_id == chat_id_str)).first()
 
-        # Check if the user is attempting phone number login (contact object or text)
+        # ----------------------------------------------------------------------
+        # PATH 1: Direct single-command login: /login <username_or_phone> <password>
+        # ----------------------------------------------------------------------
+        if text.startswith("/login"):
+            parts = text.split(maxsplit=2)
+            if len(parts) >= 3:
+                identifier = parts[1].strip()
+                password = parts[2].strip()
+
+                # Clean phone if identifier is digits
+                cleaned_id = clean_phone_number(identifier)
+
+                # Search by email/username OR by phone_number
+                target_user = session.exec(
+                    select(User).where(
+                        (User.email == identifier) |
+                        (User.phone_number == identifier) |
+                        (User.phone_number == cleaned_id) |
+                        (User.phone_number == cleaned_id.lstrip("0"))
+                    )
+                ).first()
+
+                if target_user and verify_password(password, target_user.hashed_password):
+                    target_user.bale_chat_id = chat_id_str
+                    session.add(target_user)
+                    session.commit()
+                    session.refresh(target_user)
+                    PENDING_AUTH.pop(chat_id_str, None)
+
+                    role_lbl = ROLE_TITLES.get(target_user.role, target_user.role)
+                    loc_lbl = LOCATION_TITLES.get(target_user.location, target_user.location)
+
+                    reply_text = (
+                        f"✅ *احراز هویت دوعاملی با موفقیت انجام شد!*\n\n"
+                        f"👤 *نام همکار:* {target_user.full_name or target_user.email}\n"
+                        f"🏢 *محل خدمت:* {loc_lbl}\n"
+                        f"💼 *سمت سازمانی:* {role_lbl}\n\n"
+                        f"حساب شما متصل گردید. اکنون می‌توانید از منوی زیر دستور کارهای خود را بررسی نمایید."
+                    )
+                    keyboard = {
+                        "keyboard": [
+                            [{"text": "📋 دستور کارهای من"}],
+                            [{"text": "📦 موجودی قطعات بحرانی"}, {"text": "➕ ثبت درخواست خرید سریع"}],
+                            [{"text": "👤 مشخصات حساب"}, {"text": "🚪 خروج از حساب"}]
+                        ],
+                        "resize_keyboard": True
+                    }
+                    if bale_token:
+                        background_tasks.add_task(send_bale_message, bale_token, chat_id, reply_text, keyboard)
+                    return {"method": "sendMessage", "chat_id": chat_id, "text": reply_text, "reply_markup": keyboard}
+                else:
+                    reply_text = (
+                        "❌ *شناسه کاربری یا رمز عبور نادرست است!*\n\n"
+                        "لطفاً دقت فرمایید و مجدداً ارسال کنید:\n"
+                        "فرمت دستور: `/login <نام_کاربری> <رمز_عبور>`"
+                    )
+                    keyboard = {
+                        "keyboard": [
+                            [{"text": "📱 ارسال شماره همراه سازمانی", "request_contact": True}],
+                            [{"text": "ℹ️ راهنمای احراز هویت"}]
+                        ],
+                        "resize_keyboard": True
+                    }
+                    if bale_token:
+                        background_tasks.add_task(send_bale_message, bale_token, chat_id, reply_text, keyboard)
+                    return {"method": "sendMessage", "chat_id": chat_id, "text": reply_text, "reply_markup": keyboard}
+
+        # ----------------------------------------------------------------------
+        # PATH 2: Step-by-Step 2FA State Machine
+        # ----------------------------------------------------------------------
+        pending = PENDING_AUTH.get(chat_id_str)
+
+        # Step 2b: User has already submitted phone, now entering password
+        if pending and pending.get("stage") == "awaiting_password" and not contact:
+            if text in ("/cancel", "انصراف", "خروج"):
+                PENDING_AUTH.pop(chat_id_str, None)
+                reply_text = "عملیات احراز هویت لغو شد. جهت شروع مجدد شماره همراه خود را ارسال کنید."
+                keyboard = {
+                    "keyboard": [
+                        [{"text": "📱 ارسال شماره همراه سازمانی", "request_contact": True}],
+                        [{"text": "ℹ️ راهنمای احراز هویت"}]
+                    ],
+                    "resize_keyboard": True
+                }
+                if bale_token:
+                    background_tasks.add_task(send_bale_message, bale_token, chat_id, reply_text, keyboard)
+                return {"method": "sendMessage", "chat_id": chat_id, "text": reply_text, "reply_markup": keyboard}
+
+            target_user = session.get(User, pending["user_id"])
+            if target_user and verify_password(text, target_user.hashed_password):
+                target_user.bale_chat_id = chat_id_str
+                session.add(target_user)
+                session.commit()
+                session.refresh(target_user)
+                PENDING_AUTH.pop(chat_id_str, None)
+
+                role_lbl = ROLE_TITLES.get(target_user.role, target_user.role)
+                loc_lbl = LOCATION_TITLES.get(target_user.location, target_user.location)
+
+                reply_text = (
+                    f"✅ *رمز عبور تأیید شد و ورود موفقیت‌آمیز بود!*\n\n"
+                    f"👤 *نام همکار:* {target_user.full_name or target_user.email}\n"
+                    f"🏢 *محل خدمت:* {loc_lbl}\n"
+                    f"💼 *سمت سازمانی:* {role_lbl}\n\n"
+                    f"دسترسی شما به سامانه یکپارچه مکرر برقرار شد."
+                )
+                keyboard = {
+                    "keyboard": [
+                        [{"text": "📋 دستور کارهای من"}],
+                        [{"text": "📦 موجودی قطعات بحرانی"}, {"text": "➕ ثبت درخواست خرید سریع"}],
+                        [{"text": "👤 مشخصات حساب"}, {"text": "🚪 خروج از حساب"}]
+                    ],
+                    "resize_keyboard": True
+                }
+                if bale_token:
+                    background_tasks.add_task(send_bale_message, bale_token, chat_id, reply_text, keyboard)
+                return {"method": "sendMessage", "chat_id": chat_id, "text": reply_text, "reply_markup": keyboard}
+            else:
+                reply_text = (
+                    "❌ *رمز عبور اشتباه است!*\n\n"
+                    "لطفاً رمز عبور سامانه مکرر خود را به دقت وارد کنید (یا دستور /cancel را برای انصراف ارسال فرمایید):"
+                )
+                if bale_token:
+                    background_tasks.add_task(send_bale_message, bale_token, chat_id, reply_text)
+                return {"method": "sendMessage", "chat_id": chat_id, "text": reply_text}
+
+        # Step 2a: Check if user submitted a phone number (via button or text)
         input_phone = ""
         if contact and isinstance(contact, dict):
             input_phone = clean_phone_number(contact.get("phone_number", ""))
         elif re.match(r"^(\+98|0)?9\d{9}$", clean_phone_number(text)):
             input_phone = clean_phone_number(text)
 
-        # CASE A: User is trying to authenticate via phone number
         if input_phone:
             matched_user = session.exec(
                 select(User).where(
@@ -167,56 +294,55 @@ async def bale_webhook(request: Request, background_tasks: BackgroundTasks):
             ).first()
 
             if matched_user:
-                matched_user.bale_chat_id = chat_id_str
-                session.add(matched_user)
-                session.commit()
-                session.refresh(matched_user)
-
-                role_lbl = ROLE_TITLES.get(matched_user.role, matched_user.role)
-                loc_lbl = LOCATION_TITLES.get(matched_user.location, matched_user.location)
-
+                # Stage 1 succeeded! Now prompt for password (2FA)
+                PENDING_AUTH[chat_id_str] = {
+                    "stage": "awaiting_password",
+                    "user_id": matched_user.id,
+                    "phone": input_phone,
+                    "time": time.time(),
+                }
                 reply_text = (
-                    f"✅ *احراز هویت با موفقیت انجام شد!*\n\n"
-                    f"👤 *نام همکار:* {matched_user.full_name or matched_user.email}\n"
-                    f"🏢 *محل خدمت:* {loc_lbl}\n"
-                    f"💼 *سمت سازمانی:* {role_lbl}\n\n"
-                    f"حساب شما به سامانه یکپارچه مکرر متصل شد. از منوی زیر می‌توانید وظایف و وضعیت خطوط را پیگیری نمایید."
+                    f"📱 *شماره همراه شما ({input_phone}) در پرتال مکرر تأیید شد.*\n\n"
+                    f"👤 کاربر شناسایی‌شده: *{matched_user.full_name or matched_user.email}*\n\n"
+                    f"🔑 لطفاً جهت تکمیل احراز هویت، **رمز عبور سازمانی** خود را وارد نمایید:"
                 )
                 keyboard = {
                     "keyboard": [
-                        [{"text": "📋 دستور کارهای من"}],
-                        [{"text": "📦 موجودی قطعات بحرانی"}, {"text": "➕ ثبت درخواست خرید سریع"}],
-                        [{"text": "👤 مشخصات حساب"}, {"text": "🚪 خروج از حساب"}]
+                        [{"text": "انصراف"}]
                     ],
                     "resize_keyboard": True
                 }
-
-                # Dual delivery
-                bale_token = getattr(settings, "BALE_BOT_TOKEN", None)
                 if bale_token:
                     background_tasks.add_task(send_bale_message, bale_token, chat_id, reply_text, keyboard)
-
                 return {"method": "sendMessage", "chat_id": chat_id, "text": reply_text, "reply_markup": keyboard}
             else:
                 reply_text = (
-                    f"❌ شماره همراه وارد شده (`{input_phone}`) در سامانه مکرر بازآفرین یافت نشد.\n\n"
-                    f"لطفاً با مدیر سیستم تماس بگیرید تا این شماره موبایل در بخش «مدیریت کاربران» برای حساب شما ثبت گردد."
+                    f"❌ شماره همراه وارد شده (`{input_phone}`) در سیستم مدیریت کاربران مکرر تعریف نشده است.\n\n"
+                    f"لطفاً با مدیر سامانه تماس حاصل فرمایید تا شماره موبایل شما ثبت شود."
                 )
                 keyboard = {
                     "keyboard": [
                         [{"text": "📱 ارسال شماره همراه سازمانی", "request_contact": True}],
-                        [{"text": "راهنما"}]
+                        [{"text": "ℹ️ راهنمای احراز هویت"}]
                     ],
                     "resize_keyboard": True
                 }
+                if bale_token:
+                    background_tasks.add_task(send_bale_message, bale_token, chat_id, reply_text, keyboard)
                 return {"method": "sendMessage", "chat_id": chat_id, "text": reply_text, "reply_markup": keyboard}
 
-        # CASE B: User is NOT authenticated yet
+        # ----------------------------------------------------------------------
+        # PATH 3: User is NOT authenticated in DB
+        # ----------------------------------------------------------------------
         if not user:
             reply_text = (
-                "🏭 *به بازوی اختصاصی سامانه یکپارچه مکرر خوش آمدید!*\n\n"
-                "🔒 این ربات به پایگاه داده مرکزی مکرر متصل است و دسترسی به اطلاعات سازمانی منوط به احراز هویت می‌باشد.\n\n"
-                "لطفاً با لمس دکمه زیر شماره همراه سازمانی خود را ارسال فرمایید (یا شماره خود را به صورت `0912xxxxxxx` تایپ کنید):"
+                "🏭 *به بازوی اختصاصی سامانه یکپارچه مکرر بازآفرین خوش آمدید!*\n\n"
+                "🔒 **ورود و اعتبارسنجی الزامی است:**\n"
+                "این ربات مستقیماً به پایگاه داده مرکزی متصل بوده و مشاهده تسک‌ها، کاردکس انبار و ثبت دستور کارها تنها برای پرسنل احراز هویت‌شده امکان‌پذیر است.\n\n"
+                "لطفاً یکی از دو روش زیر را انتخاب کنید:\n"
+                "۱. **روش پیامکی:** دکمه «📱 ارسال شماره همراه سازمانی» در پایین را لمس نمایید تا پس از تایید شماره، رمز عبور را وارد کنید.\n"
+                "۲. **روش سریع:** دستور زیر را تایپ کنید:\n"
+                "`/login <نام_کاربری_یا_موبایل> <رمز_عبور>`"
             )
             keyboard = {
                 "keyboard": [
@@ -225,9 +351,13 @@ async def bale_webhook(request: Request, background_tasks: BackgroundTasks):
                 ],
                 "resize_keyboard": True
             }
+            if bale_token:
+                background_tasks.add_task(send_bale_message, bale_token, chat_id, reply_text, keyboard)
             return {"method": "sendMessage", "chat_id": chat_id, "text": reply_text, "reply_markup": keyboard}
 
-        # CASE C: User IS authenticated! Process real commands from database.
+        # ----------------------------------------------------------------------
+        # PATH 4: User IS authenticated in DB! Access Granted.
+        # ----------------------------------------------------------------------
         role_title = ROLE_TITLES.get(user.role, user.role)
         loc_title = LOCATION_TITLES.get(user.location, user.location)
 
@@ -245,13 +375,12 @@ async def bale_webhook(request: Request, background_tasks: BackgroundTasks):
                 f"👋 *درود، {user.full_name or user.email} عزیز!*\n"
                 f"💼 {role_title} • 🏢 {loc_title}\n\n"
                 f"دستورات موجود:\n"
-                f"• `📋 دستور کارهای من` : مشاهده وظایف منتسب به شما یا شعبه\n"
-                f"• `/done <کد_رهگیری>` : اعلام اتمام کار و تغییر وضعیت به انجام‌شده\n"
+                f"• `📋 دستور کارهای من` : مشاهده وظایف منتسب به شما یا واحد شما\n"
+                f"• `/done <کد_رهگیری>` : اعلام اتمام کار تسک در خط تولید\n"
                 f"• `📦 موجودی قطعات بحرانی` : کاردکس و موجودی انبار قطعات\n"
                 f"• `👤 مشخصات حساب` : بررسی وضعیت دسترسی و شماره ثبت‌شده"
             )
         elif text in ("📋 دستور کارهای من", "/tasks", "وظایف من", "📋 وظایف من"):
-            # Query REAL database records for this user or their location
             query = select(TaskRecord).where(
                 (TaskRecord.assignee_name.ilike(f"%{user.full_name or '---'}%")) |
                 (TaskRecord.assignee_id == user.email) |
@@ -291,29 +420,29 @@ async def bale_webhook(request: Request, background_tasks: BackgroundTasks):
             reply_text = (
                 f"👤 *شناسه کاربری شما در مکرر:*\n\n"
                 f"• نام و نشان: *{user.full_name or 'ثبت‌نشده'}*\n"
-                f"• نام کاربری / ایمیل: `{user.email}`\n"
-                f"• شماره همراه ثبت‌شده: `{user.phone_number or 'ثبت‌نشده'}`\n"
+                f"• نام کاربری: `{user.email}`\n"
+                f"• شماره همراه: `{user.phone_number or 'ثبت‌نشده'}`\n"
                 f"• محل خدمت: *{loc_title}*\n"
                 f"• نقش سازمانی: *{role_title}*\n"
+                f"• شناسه اتصال بله: `{user.bale_chat_id}`\n"
                 f"• وضعیت حساب: {'فعال ✅' if user.is_active else 'غیرفعال ❌'}"
             )
         elif text in ("🚪 خروج از حساب", "/logout"):
             user.bale_chat_id = None
             session.add(user)
             session.commit()
-            reply_text = "🚪 حساب شما با موفقیت از این بازو خارج شد.\nجهت ورود دوباره، شماره همراه خود را ارسال نمایید."
+            PENDING_AUTH.pop(chat_id_str, None)
+            reply_text = "🚪 حساب شما با موفقیت از این بازو خارج شد.\nجهت ورود دوباره، شماره همراه یا دستور /login را ارسال نمایید."
             auth_keyboard = {
                 "keyboard": [
                     [{"text": "📱 ارسال شماره همراه سازمانی", "request_contact": True}],
-                    [{"text": "راهنما"}]
+                    [{"text": "ℹ️ راهنمای احراز هویت"}]
                 ],
                 "resize_keyboard": True
             }
         else:
             reply_text = "دستور نامعتبر است. لطفاً از دکمه‌های منو استفاده فرمایید یا دستور /start را ارسال کنید."
 
-        # Dual delivery via background task
-        bale_token = getattr(settings, "BALE_BOT_TOKEN", None)
         if bale_token:
             background_tasks.add_task(send_bale_message, bale_token, chat_id, reply_text, auth_keyboard)
 

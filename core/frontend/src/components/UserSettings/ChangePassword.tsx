@@ -16,6 +16,7 @@ import {
 import { LoadingButton } from "@/components/ui/loading-button"
 import { PasswordInput } from "@/components/ui/password-input"
 import { api } from "@/services/api"
+import useAuth from "@/hooks/useAuth"
 import { toast } from "sonner"
 
 const formSchema = z
@@ -40,6 +41,7 @@ const formSchema = z
 type FormData = z.infer<typeof formSchema>
 
 const ChangePassword = () => {
+  const { logout } = useAuth()
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     mode: "onSubmit",
@@ -55,8 +57,11 @@ const ChangePassword = () => {
     mutationFn: (data: FormData) =>
       api.users.updatePasswordMe(data.current_password, data.new_password),
     onSuccess: () => {
-      toast.success("رمز عبور شما با موفقیت تغییر یافت و ذخیره شد.")
+      toast.success("رمز عبور شما با موفقیت تغییر یافت. جهت امنیت، لطفاً مجدداً با رمز عبور جدید وارد شوید.")
       form.reset()
+      setTimeout(() => {
+        logout()
+      }, 1200)
     },
     onError: (err: any) => {
       toast.error(err.response?.data?.detail || "خطا در تغییر رمز عبور")

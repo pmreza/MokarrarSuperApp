@@ -71,7 +71,7 @@ interface PermMeta {
 }
 
 export function AdminUserManagement() {
-  const { user: currentUser } = useAuth()
+  const { user: currentUser, logout } = useAuth()
   const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
@@ -248,6 +248,20 @@ export function AdminUserManagement() {
       }
 
       await api.users.update(selectedUser.id, payload)
+
+      const isCurrentAccount =
+        selectedUser.id === currentUser?.id ||
+        selectedUser.email === currentUser?.email
+
+      if (editNewPassword.trim() && isCurrentAccount) {
+        toast.success("رمز عبور حساب جاری شما تغییر یافت. جهت امنیت، به صفحه ورود هدایت می‌شوید.")
+        setIsEditOpen(false)
+        setTimeout(() => {
+          logout()
+        }, 1200)
+        return
+      }
+
       toast.success("اطلاعات و دسترسی‌های کاربر بروزرسانی شد.")
       setIsEditOpen(false)
       loadData()

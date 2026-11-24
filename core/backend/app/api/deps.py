@@ -45,6 +45,15 @@ def get_current_user(session: SessionDep, token: TokenDep) -> User:
         raise HTTPException(status_code=404, detail="User not found")
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
+
+    # Invalidate session if password was changed after token issuance
+    token_pwd_hash = payload.get("pwd_hash")
+    if token_pwd_hash and user.hashed_password[:12] != token_pwd_hash:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="رمز عبور شما تغییر یافته است. لطفاً مجدداً وارد شوید.",
+        )
+
     return user
 
 

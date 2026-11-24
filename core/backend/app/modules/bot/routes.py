@@ -54,7 +54,7 @@ def format_persian_tasks(tasks: list[TaskRecord]) -> str:
     if not tasks:
         return "📋 در حال حاضر هیچ دستور کار بازی برای شما یا واحد شما ثبت نشده است."
 
-    lines = ["📋 *فهرست دستور کارهای فعال در سامانه مکرر:*", ""]
+    lines = ["📋 *فهرست دستور کارهای فعال در سامane مکرر:*", ""]
     status_map = {
         "todo": "📌 برنامه‌ریزی شده",
         "in_progress": "⏳ در حال اجرا",
@@ -62,22 +62,27 @@ def format_persian_tasks(tasks: list[TaskRecord]) -> str:
         "cancelled": "🚫 لغو شده",
     }
     priority_map = {
-        "urgent": "🔴 بحرانی (کد قرمز)",
-        "high": "🟠 فوری",
-        "medium": "🟡 متوسط",
-        "low": "🟢 عادی",
+        "urgent": "🔴 اولویت بحرانی",
+        "critical": "🔴 اولویت بحرانی",
+        "high": "🟠 اولویت فوری",
+        "medium": "🟡 اولویت متوسط",
+        "low": "🟢 اولویت پایین",
     }
 
-    for idx, t in enumerate(tasks[:6], 1):
+    for idx, t in enumerate(tasks[:8], 1):
         st = status_map.get(t.state, t.state)
         pr = priority_map.get(t.priority, t.priority)
         lines.append(f"{idx}. *{t.title}*")
         lines.append(f"   • کد رهگیری: `{t.id}`")
-        lines.append(f"   • مسئول: {t.assignee_name}")
+        lines.append(f"   • مسئول اجرا: {t.assignee_name}")
+        if getattr(t, "follower_name", None):
+            lines.append(f"   • مسئول پیگیری: {t.follower_name}")
+        if getattr(t, "due_date", None):
+            lines.append(f"   • مهلت تحویل: {t.due_date}")
         lines.append(f"   • وضعیت: {st} | اولویت: {pr}")
         lines.append("")
 
-    lines.append("💡 جهت تغییر وضعیت به *اتمام یافته*، دستور زیر را بفرستید:")
+    lines.append("💡 جهت تغییر وضعیت تسک به *اتمام یافته*، دستور زیر را بفرستید:")
     lines.append("`/done <کد_رهگیری>` (مثال: `/done task-01`)")
     return "\n".join(lines)
 
@@ -160,7 +165,6 @@ async def bale_webhook(request: Request, background_tasks: BackgroundTasks):
                 identifier = parts[1].strip()
                 password = parts[2].strip()
 
-                # Clean phone if identifier is digits
                 cleaned_id = clean_phone_number(identifier)
 
                 # Search by email/username OR by phone_number
@@ -205,7 +209,7 @@ async def bale_webhook(request: Request, background_tasks: BackgroundTasks):
                     reply_text = (
                         "❌ *شناسه کاربری یا رمز عبور نادرست است!*\n\n"
                         "لطفاً دقت فرمایید و مجدداً ارسال کنید:\n"
-                        "فرمت دستور: `/login <نام_کاربری> <رمز_عبور>`"
+                        "فرمت دستور: `/login <نام_کاربری_یا_شماره_همراه> <رمز_عبور>`"
                     )
                     keyboard = {
                         "keyboard": [
@@ -217,13 +221,103 @@ async def bale_webhook(request: Request, background_tasks: BackgroundTasks):
                     if bale_token:
                         background_tasks.add_task(send_bale_message, bale_token, chat_id, reply_text, keyboard)
                     return {"method": "sendMessage", "chat_id": chat_id, "text": reply_text, "reply_markup": keyboard}
+            elif len(parts) == 2:
+                # User typed: /login username
+                ident = parts[1].strip()
+                cleaned_id = clean_phone_number(ident)
+                target_user = session.exec(
+                    select(User).where(
+                        (User.email == ident) |
+                        (User.phone_number == ident) |
+                        (User.phone_number == cleaned_id) |
+                        (User.phone_number == cleaned_id.lstrip("0"))
+                    )
+                ).first()
+                if target_user:
+                    PENDING_AUTH[chat_id_str] = {
+                        "stage": "awaiting_password",
+                        "user_id": target_user.id,
+                        "phone": target_user.phone_number or "",
+                        "time": time.time(),
+                    }
+                    reply_text = (
+                        f"👤 کاربر شناسایی شد: *{target_user.full_name or target_user.email}*\n\n"
+                        f"🔑 لطفاً **رمز عبور سازمانی** خود را وارد نمایید:"
+                    )
+                    keyboard = {"keyboard": [[{"text": "انصراف"}]], "resize_keyboard": True}
+                    if bale_token:
+                        background_tasks.add_task(send_bale_message, bale_token, chat_id, reply_text, keyboard)
+                    return {"method": "sendMessage", "chat_id": chat_id, "text": reply_text, "reply_markup": keyboard}
+                else:
+                    reply_text = f"❌ کاربری با شناسه `{ident}` در سامانه مکرر یافت نشد."
+                    if bale_token:
+                        background_tasks.add_task(send_bale_message, bale_token, chat_id, reply_text)
+                    return {"method": "sendMessage", "chat_id": chat_id, "text": reply_text}
+            else:
+                PENDING_AUTH[chat_id_str] = {"stage": "awaiting_identifier", "time": time.time()}
+                reply_text = (
+                    "🔑 *ورود به سامانه مکرر*\n\n"
+                    "لطفاً **نام کاربری (ایمیل)** یا **شماره همراه** خود را ارسال کنید:\n"
+                    "(یا دستور `/login <نام‌کاربری> <رمز>` را در یک خط بفرستید)"
+                )
+                keyboard = {
+                    "keyboard": [
+                        [{"text": "📱 ارسال شماره همراه سازمانی", "request_contact": True}],
+                        [{"text": "انصراف"}]
+                    ],
+                    "resize_keyboard": True
+                }
+                if bale_token:
+                    background_tasks.add_task(send_bale_message, bale_token, chat_id, reply_text, keyboard)
+                return {"method": "sendMessage", "chat_id": chat_id, "text": reply_text, "reply_markup": keyboard}
 
         # ----------------------------------------------------------------------
         # PATH 2: Step-by-Step 2FA State Machine
         # ----------------------------------------------------------------------
         pending = PENDING_AUTH.get(chat_id_str)
 
-        # Step 2b: User has already submitted phone, now entering password
+        # Stage: awaiting_identifier
+        if pending and pending.get("stage") == "awaiting_identifier" and not contact:
+            if text in ("/cancel", "انصراف", "خروج"):
+                PENDING_AUTH.pop(chat_id_str, None)
+                reply_text = "عملیات ورود لغو شد."
+                if bale_token:
+                    background_tasks.add_task(send_bale_message, bale_token, chat_id, reply_text)
+                return {"method": "sendMessage", "chat_id": chat_id, "text": reply_text}
+
+            ident = text.strip()
+            cleaned_id = clean_phone_number(ident)
+            target_user = session.exec(
+                select(User).where(
+                    (User.email == ident) |
+                    (User.phone_number == ident) |
+                    (User.phone_number == cleaned_id) |
+                    (User.phone_number == cleaned_id.lstrip("0"))
+                )
+            ).first()
+
+            if target_user:
+                PENDING_AUTH[chat_id_str] = {
+                    "stage": "awaiting_password",
+                    "user_id": target_user.id,
+                    "phone": target_user.phone_number or "",
+                    "time": time.time(),
+                }
+                reply_text = (
+                    f"👤 کاربر شناسایی شد: *{target_user.full_name or target_user.email}*\n\n"
+                    f"🔑 لطفاً **رمز عبور سازمانی** خود را وارد نمایید:"
+                )
+                keyboard = {"keyboard": [[{"text": "انصراف"}]], "resize_keyboard": True}
+                if bale_token:
+                    background_tasks.add_task(send_bale_message, bale_token, chat_id, reply_text, keyboard)
+                return {"method": "sendMessage", "chat_id": chat_id, "text": reply_text, "reply_markup": keyboard}
+            else:
+                reply_text = f"❌ کاربری با شناسه `{ident}` در سامانه یافت نشد. لطفاً مجدداً ایمیل یا شماره موبایل معتبر بفرستید:"
+                if bale_token:
+                    background_tasks.add_task(send_bale_message, bale_token, chat_id, reply_text)
+                return {"method": "sendMessage", "chat_id": chat_id, "text": reply_text}
+
+        # Step 2b: User has already submitted phone/user, now entering password
         if pending and pending.get("stage") == "awaiting_password" and not contact:
             if text in ("/cancel", "انصراف", "خروج"):
                 PENDING_AUTH.pop(chat_id_str, None)
@@ -271,7 +365,7 @@ async def bale_webhook(request: Request, background_tasks: BackgroundTasks):
             else:
                 reply_text = (
                     "❌ *رمز عبور اشتباه است!*\n\n"
-                    "لطفاً رمز عبور سامانه مکرر خود را به دقت وارد کنید (یا دستور /cancel را برای انصراف ارسال فرمایید):"
+                    "لطفاً رمز عبور سامانه مکرر خود را به دقت وارد کنید (یا دکمه انصراف را لمس نمایید):"
                 )
                 if bale_token:
                     background_tasks.add_task(send_bale_message, bale_token, chat_id, reply_text)
@@ -382,9 +476,13 @@ async def bale_webhook(request: Request, background_tasks: BackgroundTasks):
             )
         elif text in ("📋 دستور کارهای من", "/tasks", "وظایف من", "📋 وظایف من"):
             query = select(TaskRecord).where(
-                (TaskRecord.assignee_name.ilike(f"%{user.full_name or '---'}%")) |
-                (TaskRecord.assignee_id == user.email) |
-                (TaskRecord.location == user.location)
+                (TaskRecord.is_deleted == False) & (
+                    (TaskRecord.assignee_name.ilike(f"%{user.full_name or '---'}%")) |
+                    (TaskRecord.assignee_id == user.email) |
+                    (TaskRecord.follower_name.ilike(f"%{user.full_name or '---'}%")) |
+                    (TaskRecord.follower_id == user.email) |
+                    (TaskRecord.location == user.location)
+                )
             ).order_by(col(TaskRecord.created_at).desc()).limit(8)
             tasks = session.exec(query).all()
             reply_text = format_persian_tasks(tasks)

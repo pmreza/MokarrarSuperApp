@@ -66,6 +66,9 @@ export const api = {
       priority?: string
       state?: string
       assignee_name?: string
+      assignee_id?: string
+      follower_name?: string
+      follower_id?: string
       location?: string
       due_date?: string
       tags?: string[]
@@ -77,8 +80,16 @@ export const api = {
       const res = await apiClient.patch(`/tasks/${id}`, updates)
       return res.data
     },
-    delete: async (id: string) => {
-      const res = await apiClient.delete(`/tasks/${id}`)
+    delete: async (id: string, permanent: boolean = false) => {
+      const res = await apiClient.delete(`/tasks/${id}`, { params: { permanent } })
+      return res.data
+    },
+    restore: async (id: string) => {
+      const res = await apiClient.post(`/tasks/${id}/restore`)
+      return res.data
+    },
+    getTrash: async () => {
+      const res = await apiClient.get("/tasks/trash")
       return res.data
     },
     getStates: async () => {

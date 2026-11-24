@@ -8,12 +8,10 @@ from app.core.config import settings
 from app.core.db import engine
 from sqlmodel import Session, select
 from app.modules.tasks.models import TaskRecord
+from app.models import User
+from app.core.security import ROLE_TITLES
 
 logger = logging.getLogger("mokarrar.plane_adapter")
-
-
-# DB-backed persistence for tasks when Plane external API is not configured
-# No hardcoded fake tasks - tasks are persisted directly in PostgreSQL/SQLite
 
 MOCK_STATES = [
     {"id": "backlog", "name": "بک‌لاگ", "color": "#64748B", "group": "backlog"},
@@ -22,15 +20,11 @@ MOCK_STATES = [
     {"id": "done", "name": "تکمیل شده", "color": "#10B981", "group": "completed"},
 ]
 
-MOCK_MEMBERS: list[dict[str, Any]] = []
-
 
 class PlaneAdapter:
     """
     Adapter for headless Plane Task Management Engine.
-    Uses Plane REST API (/api/v1/workspaces/{slug}/projects/{project_id}/issues/)
-    Automatically falls back to rich in-memory Mock Store when MOCK_EXTERNAL_SERVICES=true
-    or when Plane server is not reachable.
+    Uses Plane REST API or persists directly in PostgreSQL/SQLite DB.
     """
 
     def __init__(self):
@@ -45,36 +39,44 @@ class PlaneAdapter:
         self.project_id = settings.PLANE_PROJECT_ID
 
     async def get_states(self) -> list[dict[str, Any]]:
-        if self.mock_mode:
-            return MOCK_STATES
-        try:
-            endpoint = f"/api/v1/workspaces/{self.workspace_slug}/projects/{self.project_id}/states/"
-            res = await self.http_adapter.request("GET", endpoint)
-            return res if isinstance(res, list) else MOCK_STATES
-        except Exception as e:
-            logger.warning("Plane get_states failed: %s. Using mock fallback.", e)
-            return MOCK_STATES
+        return MOCK_STATES
 
     async def get_members(self) -> list[dict[str, Any]]:
-        if self.mock_mode:
-            return MOCK_MEMBERS
+        """Return real registered users from DB with their role, email and location."""
         try:
-            endpoint = f"/api/v1/workspaces/{self.workspace_slug}/projects/{self.project_id}/members/"
-            res = await self.http_adapter.request("GET", endpoint)
-            return res if isinstance(res, list) else MOCK_MEMBERS
+            with Session(engine) as session:
+                users = session.exec(select(User).where(User.is_active == True)).all()
+                members = []
+                for u in users:
+                    display_name = u.full_name or u.email
+                    role_title = ROLE_TITLES.get(u.role, u.role or "کارمند")
+                    members.append({
+                        "id": str(u.id),
+                        "name": display_name,
+                        "email": u.email,
+                        "role": role_title,
+                        "location": getattr(u, "location", "central_office") or "central_office",
+                        "phone_number": getattr(u, "phone_number", "") or "",
+                        "bale_chat_id": getattr(u, "bale_chat_id", "") or "",
+                    })
+                return members
         except Exception as e:
-            logger.warning("Plane get_members failed: %s. Using mock fallback.", e)
-            return MOCK_MEMBERS
+            logger.warning("Error fetching members from DB: %s", e)
+            return []
 
     def _get_db_tasks(
         self,
         state: str | None = None,
         search: str | None = None,
         location: str | None = None,
+        include_deleted: bool = False,
     ) -> list[dict[str, Any]]:
         try:
             with Session(engine) as session:
-                records = session.exec(select(TaskRecord)).all()
+                query = select(TaskRecord)
+                if not include_deleted:
+                    query = query.where(TaskRecord.is_deleted == False)
+                records = session.exec(query).all()
                 tasks = [r.to_dict() for r in records]
                 if state:
                     tasks = [t for t in tasks if t.get("state") == state]
@@ -102,10 +104,14 @@ class PlaneAdapter:
                     priority=task_data.get("priority", "medium"),
                     assignee_name=task_data.get("assignee_name", "تخصیص‌نیافته"),
                     assignee_id=task_data.get("assignee_id", "unassigned"),
+                    follower_name=task_data.get("follower_name", ""),
+                    follower_id=task_data.get("follower_id", ""),
                     location=task_data.get("location", "central_office"),
                     due_date=task_data.get("due_date", "1405/04/01"),
                     created_at=task_data.get("created_at", datetime.now(UTC).isoformat()),
                     tags=json.dumps(task_data.get("tags", []), ensure_ascii=False),
+                    is_deleted=False,
+                    deleted_at="",
                     metadata_json=json.dumps(task_data.get("metadata", {}), ensure_ascii=False),
                     comments_json=json.dumps(task_data.get("comments", []), ensure_ascii=False),
                 )
@@ -133,10 +139,22 @@ class PlaneAdapter:
                     record.priority = updates["priority"]
                 if "assignee_name" in updates and updates["assignee_name"] is not None:
                     record.assignee_name = updates["assignee_name"]
+                if "assignee_id" in updates and updates["assignee_id"] is not None:
+                    record.assignee_id = updates["assignee_id"]
+                if "follower_name" in updates and updates["follower_name"] is not None:
+                    record.follower_name = updates["follower_name"]
+                if "follower_id" in updates and updates["follower_id"] is not None:
+                    record.follower_id = updates["follower_id"]
                 if "location" in updates and updates["location"] is not None:
                     record.location = updates["location"]
                 if "due_date" in updates and updates["due_date"] is not None:
                     record.due_date = updates["due_date"]
+                if "is_deleted" in updates and updates["is_deleted"] is not None:
+                    record.is_deleted = updates["is_deleted"]
+                    if updates["is_deleted"]:
+                        record.deleted_at = datetime.now(UTC).isoformat()
+                    else:
+                        record.deleted_at = ""
                 if "tags" in updates and updates["tags"] is not None:
                     record.tags = json.dumps(updates["tags"], ensure_ascii=False)
                 session.add(record)
@@ -147,7 +165,24 @@ class PlaneAdapter:
             logger.error("Error updating task in DB: %s", e)
             return None
 
-    def _delete_db_task(self, task_id: str) -> bool:
+    def _soft_delete_db_task(self, task_id: str) -> bool:
+        """Move task to Trash Bin (soft delete)."""
+        try:
+            with Session(engine) as session:
+                record = session.get(TaskRecord, task_id)
+                if record:
+                    record.is_deleted = True
+                    record.deleted_at = datetime.now(UTC).isoformat()
+                    session.add(record)
+                    session.commit()
+                    return True
+                return False
+        except Exception as e:
+            logger.error("Error soft deleting task in DB: %s", e)
+            return False
+
+    def _hard_delete_db_task(self, task_id: str) -> bool:
+        """Permanently delete task from DB."""
         try:
             with Session(engine) as session:
                 record = session.get(TaskRecord, task_id)
@@ -157,47 +192,38 @@ class PlaneAdapter:
                     return True
                 return False
         except Exception as e:
-            logger.error("Error deleting task from DB: %s", e)
+            logger.error("Error permanently deleting task from DB: %s", e)
             return False
+
+    def _restore_db_task(self, task_id: str) -> dict[str, Any] | None:
+        """Restore soft-deleted task from Trash Bin."""
+        return self._update_db_task(task_id, {"is_deleted": False})
 
     async def get_tasks(
         self,
         state: str | None = None,
         search: str | None = None,
         location: str | None = None,
+        include_deleted: bool = False,
     ) -> list[dict[str, Any]]:
-        if self.mock_mode:
-            return self._get_db_tasks(state=state, search=search, location=location)
+        return self._get_db_tasks(state=state, search=search, location=location, include_deleted=include_deleted)
+
+    async def get_trash_tasks(self) -> list[dict[str, Any]]:
         try:
-            endpoint = f"/api/v1/workspaces/{self.workspace_slug}/projects/{self.project_id}/issues/"
-            params = {}
-            if state:
-                params["state"] = state
-            res = await self.http_adapter.request("GET", endpoint, params=params)
-            return res if isinstance(res, list) else self._get_db_tasks(state=state, search=search, location=location)
+            with Session(engine) as session:
+                records = session.exec(select(TaskRecord).where(TaskRecord.is_deleted == True)).all()
+                return [r.to_dict() for r in records]
         except Exception as e:
-            logger.warning("Plane get_tasks failed: %s. Using persistent DB fallback.", e)
-            return self._get_db_tasks(state=state, search=search, location=location)
+            logger.error("Error fetching trash tasks: %s", e)
+            return []
 
     async def get_task(self, task_id: str) -> dict[str, Any] | None:
-        if self.mock_mode:
-            try:
-                with Session(engine) as session:
-                    record = session.get(TaskRecord, task_id)
-                    return record.to_dict() if record else None
-            except Exception:
-                return None
         try:
-            endpoint = f"/api/v1/workspaces/{self.workspace_slug}/projects/{self.project_id}/issues/{task_id}/"
-            return await self.http_adapter.request("GET", endpoint)
-        except Exception as e:
-            logger.warning("Plane get_task failed: %s. Checking persistent DB.", e)
-            try:
-                with Session(engine) as session:
-                    record = session.get(TaskRecord, task_id)
-                    return record.to_dict() if record else None
-            except Exception:
-                return None
+            with Session(engine) as session:
+                record = session.get(TaskRecord, task_id)
+                return record.to_dict() if record else None
+        except Exception:
+            return None
 
     async def create_task(
         self,
@@ -207,6 +233,8 @@ class PlaneAdapter:
         state: str = "todo",
         assignee_name: str | None = None,
         assignee_id: str | None = None,
+        follower_name: str | None = None,
+        follower_id: str | None = None,
         location: str = "central_office",
         due_date: str | None = None,
         tags: list[str] | None = None,
@@ -220,49 +248,27 @@ class PlaneAdapter:
             "state": state,
             "assignee_name": assignee_name or "تخصیص‌نیافته",
             "assignee_id": assignee_id or "unassigned",
+            "follower_name": follower_name or "",
+            "follower_id": follower_id or "",
             "location": location or "central_office",
             "due_date": due_date or "1405/04/01",
             "created_at": datetime.now(UTC).isoformat(),
-            "tags": tags or ["عمومی"],
+            "tags": tags or [],
             "metadata": metadata or {},
             "comments": [],
         }
-        if self.mock_mode:
-            return self._create_db_task(new_task)
-
-        try:
-            endpoint = f"/api/v1/workspaces/{self.workspace_slug}/projects/{self.project_id}/issues/"
-            payload = {
-                "name": title,
-                "description_html": f"<p>{description}</p>",
-                "priority": priority,
-                "state": state,
-                "assignees": [assignee_id] if assignee_id else [],
-            }
-            return await self.http_adapter.request("POST", endpoint, json_data=payload)
-        except Exception as e:
-            logger.warning("Plane create_task API failed: %s. Falling back to persistent DB.", e)
-            return self._create_db_task(new_task)
+        return self._create_db_task(new_task)
 
     async def update_task(self, task_id: str, updates: dict[str, Any]) -> dict[str, Any] | None:
-        if self.mock_mode:
-            return self._update_db_task(task_id, updates)
-        try:
-            endpoint = f"/api/v1/workspaces/{self.workspace_slug}/projects/{self.project_id}/issues/{task_id}/"
-            return await self.http_adapter.request("PATCH", endpoint, json_data=updates)
-        except Exception as e:
-            logger.warning("Plane update_task failed: %s. Updating persistent DB.", e)
-            return self._update_db_task(task_id, updates)
+        return self._update_db_task(task_id, updates)
 
-    async def delete_task(self, task_id: str) -> bool:
-        if self.mock_mode:
-            return self._delete_db_task(task_id)
-        try:
-            endpoint = f"/api/v1/workspaces/{self.workspace_slug}/projects/{self.project_id}/issues/{task_id}/"
-            await self.http_adapter.request("DELETE", endpoint)
-            return True
-        except Exception:
-            return self._delete_db_task(task_id)
+    async def delete_task(self, task_id: str, permanent: bool = False) -> bool:
+        if permanent:
+            return self._hard_delete_db_task(task_id)
+        return self._soft_delete_db_task(task_id)
+
+    async def restore_task(self, task_id: str) -> dict[str, Any] | None:
+        return self._restore_db_task(task_id)
 
     async def add_comment(self, task_id: str, content: str, author_name: str = "کاربر مکرر") -> dict[str, Any]:
         comment = {

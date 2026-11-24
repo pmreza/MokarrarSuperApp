@@ -8,7 +8,6 @@ import {
   User,
   Send,
   MessageSquare,
-  Tag,
   CheckCircle2,
   Trash2,
   Filter,
@@ -19,6 +18,11 @@ import {
   Layers,
   Sparkles,
   Calendar,
+  Eye,
+  RotateCcw,
+  ShieldAlert,
+  UserCheck,
+  AlertOctagon,
 } from "lucide-react"
 import { KanbanBoard, type TaskItem } from "@/components/ui/KanbanBoard"
 import { DataTable, type Column } from "@/components/ui/DataTable"
@@ -28,10 +32,22 @@ import { JalaliDatePicker } from "@/components/ui/JalaliDatePicker"
 import { api } from "@/services/api"
 import { toast } from "sonner"
 
+interface TeamMember {
+  id: string
+  name: string
+  email: string
+  role: string
+  location?: string
+  phone_number?: string
+  bale_chat_id?: string
+}
+
 export const TasksView: React.FC = () => {
   const [tasks, setTasks] = useState<TaskItem[]>([])
+  const [trashTasks, setTrashTasks] = useState<TaskItem[]>([])
+  const [members, setMembers] = useState<TeamMember[]>([])
   const [loading, setLoading] = useState(true)
-  const [viewMode, setViewMode] = useState<"kanban" | "table">("kanban")
+  const [viewMode, setViewMode] = useState<"kanban" | "table" | "trash">("kanban")
 
   // Filters
   const [selectedLocation, setSelectedLocation] = useState<string>("all")
@@ -41,35 +57,63 @@ export const TasksView: React.FC = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [selectedTask, setSelectedTask] = useState<TaskItem | null>(null)
 
-  // New task form
+  // New task form state
   const [newTitle, setNewTitle] = useState("")
   const [newDesc, setNewDesc] = useState("")
-  const [newPriority, setNewPriority] = useState("medium")
+  const [newPriority, setNewPriority] = useState("medium") // low, medium, urgent, critical
   const [newState, setNewState] = useState("todo")
-  const [newAssignee, setNewAssignee] = useState("مهندس محمد رضایی")
   const [newLocation, setNewLocation] = useState("central_office")
-  const [newDueDate, setNewDueDate] = useState("۱۴۰۵/۰۳/۲۰")
-  const [newTags, setNewTags] = useState("عمومی, اداری")
+  const [newAssigneeId, setNewAssigneeId] = useState("")
+  const [newFollowerId, setNewFollowerId] = useState("")
+  const [newDueDate, setNewDueDate] = useState("۱۴۰۳/۰۹/۱۰")
 
   // Comment input
   const [commentText, setCommentText] = useState("")
 
-  const loadTasks = async () => {
+  const loadData = async () => {
     try {
       setLoading(true)
-      const data = await api.tasks.list()
-      setTasks(data)
+      const [tasksData, membersData, trashData] = await Promise.all([
+        api.tasks.list(),
+        api.tasks.getMembers(),
+        api.tasks.getTrash(),
+      ])
+      setTasks(tasksData || [])
+      setMembers(membersData || [])
+      setTrashTasks(trashData || [])
+
+      if (membersData && membersData.length > 0 && !newAssigneeId) {
+        setNewAssigneeId(membersData[0].id)
+      }
     } catch (err) {
       console.error(err)
-      toast.error("خطا در دریافت فهرست تسک‌ها از موتور Plane")
+      toast.error("خطا در بارگذاری اطلاعات تسک‌ها و اعضای تیم")
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    loadTasks()
+    loadData()
   }, [])
+
+  // Auto-set default assignee when location changes
+  const filteredMembersByLocation = members.filter((m) => {
+    if (newLocation === "central_office") {
+      return !m.location || m.location === "central_office"
+    }
+    return m.location === newLocation
+  })
+
+  const effectiveMembers = filteredMembersByLocation.length > 0 ? filteredMembersByLocation : members
+
+  useEffect(() => {
+    if (effectiveMembers.length > 0) {
+      if (!effectiveMembers.some((m) => m.id === newAssigneeId)) {
+        setNewAssigneeId(effectiveMembers[0].id)
+      }
+    }
+  }, [newLocation, effectiveMembers, newAssigneeId])
 
   const handleStateChange = async (taskId: string, newStateId: string) => {
     try {
@@ -77,16 +121,22 @@ export const TasksView: React.FC = () => {
         prev.map((t) => (t.id === taskId ? { ...t, state: newStateId } : t))
       )
       await api.tasks.update(taskId, { state: newStateId })
-      toast.success("وضعیت تسک با موفقیت در موتور Plane بروزرسانی گردید.")
+      toast.success("وضعیت تسک با موفقیت بروزرسانی شد.")
     } catch (err) {
       toast.error("خطا در تغییر وضعیت تسک")
-      loadTasks()
+      loadData()
     }
   }
 
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newTitle.trim()) return
+    if (!newTitle.trim()) {
+      toast.error("لطفاً عنوان تسک را وارد نمایید.")
+      return
+    }
+
+    const assignedUser = members.find((m) => String(m.id) === String(newAssigneeId))
+    const followerUser = members.find((m) => String(m.id) === String(newFollowerId))
 
     try {
       const created = await api.tasks.create({
@@ -94,16 +144,20 @@ export const TasksView: React.FC = () => {
         description: newDesc,
         priority: newPriority,
         state: newState,
-        assignee_name: newAssignee,
+        assignee_name: assignedUser ? assignedUser.name : "تخصیص‌نیافته",
+        assignee_id: assignedUser ? String(assignedUser.id) : "unassigned",
+        follower_name: followerUser ? followerUser.name : "",
+        follower_id: followerUser ? String(followerUser.id) : "",
         location: newLocation,
         due_date: newDueDate,
-        tags: newTags.split(",").map((s) => s.trim()).filter(Boolean),
+        tags: [],
       })
+
       setTasks((prev) => [created, ...prev])
       setIsCreateOpen(false)
       setNewTitle("")
       setNewDesc("")
-      toast.success("تسک جدید با موفقیت در Plane ایجاد گردید.")
+      toast.success("تسک جدید با موفقیت ثبت شد و اعلان برای مجری و پیگیر ارسال گردید.")
     } catch (err) {
       toast.error("خطا در ایجاد تسک جدید")
     }
@@ -127,15 +181,40 @@ export const TasksView: React.FC = () => {
     }
   }
 
-  const handleDeleteTask = async (id: string) => {
-    if (!confirm("آیا از حذف این تسک اطمینان دارید؟")) return
+  const handleSoftDelete = async (id: string) => {
     try {
-      await api.tasks.delete(id)
+      await api.tasks.delete(id, false)
+      const target = tasks.find((t) => t.id === id)
+      if (target) {
+        setTrashTasks((prev) => [{ ...target, is_deleted: true }, ...prev])
+      }
       setTasks((prev) => prev.filter((t) => t.id !== id))
       setSelectedTask(null)
-      toast.success("تسک با موفقیت حذف گردید.")
+      toast.info("تسک به سطل آشغال منتقل شد. هر زمان بخواهید قابل بازیابی است.")
     } catch (err) {
       toast.error("خطا در حذف تسک")
+    }
+  }
+
+  const handleRestoreTask = async (id: string) => {
+    try {
+      const restored = await api.tasks.restore(id)
+      setTrashTasks((prev) => prev.filter((t) => t.id !== id))
+      setTasks((prev) => [restored, ...prev])
+      toast.success("تسک با موفقیت از سطل آشغال بازیابی شد.")
+    } catch (err) {
+      toast.error("خطا در بازیابی تسک")
+    }
+  }
+
+  const handlePermanentDelete = async (id: string) => {
+    if (!confirm("آیا از حذف دائمی این تسک از پایگاه داده اطمینان دارید؟ این عمل غیرقابل بازگشت است.")) return
+    try {
+      await api.tasks.delete(id, true)
+      setTrashTasks((prev) => prev.filter((t) => t.id !== id))
+      toast.success("تسک به طور دائمی حذف گردید.")
+    } catch (err) {
+      toast.error("خطا در حذف دائمی تسک")
     }
   }
 
@@ -154,7 +233,7 @@ export const TasksView: React.FC = () => {
       className: "w-24 text-center font-mono text-xs font-bold text-orange-600",
     },
     {
-      header: "عنوان دستور کار فنی (WO)",
+      header: "عنوان تسک",
       cell: (row) => (
         <div>
           <span
@@ -185,33 +264,64 @@ export const TasksView: React.FC = () => {
           </span>
         )
       },
-      className: "w-32 text-center",
+      className: "w-28 text-center",
     },
     {
       header: "وضعیت",
       cell: (row) => <StatusBadge status={row.state} />,
-      className: "w-32 text-center",
+      className: "w-28 text-center",
     },
     {
       header: "اولویت",
       cell: (row) => <StatusBadge status={row.priority} />,
-      className: "w-28 text-center",
+      className: "w-32 text-center",
     },
     {
       header: "مسئول اجرا",
       accessorKey: "assignee_name",
-      className: "w-36 text-zinc-700 text-xs font-medium",
+      className: "w-36 text-zinc-800 text-xs font-bold",
     },
     {
-      header: "سررسید",
+      header: "مسئول پیگیری",
+      cell: (row) => (
+        <span className="text-zinc-600 text-xs font-medium">
+          {row.follower_name || "—"}
+        </span>
+      ),
+      className: "w-32 text-center",
+    },
+    {
+      header: "مهلت تحویل (ددلاین)",
       accessorKey: "due_date",
-      className: "w-28 text-center font-mono text-xs text-zinc-500",
+      className: "w-28 text-center font-mono text-xs text-zinc-600",
+    },
+    {
+      header: "اقدامات",
+      cell: (row) => (
+        <div className="flex items-center justify-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={() => setSelectedTask(row)}
+            className="p-1.5 text-zinc-500 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-colors cursor-pointer"
+            title="مشاهده جزئیات"
+          >
+            <Eye className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => handleSoftDelete(row.id)}
+            className="p-1.5 text-zinc-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+            title="انتقال به سطل آشغال"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      ),
+      className: "w-24 text-center",
     },
   ]
 
   return (
     <div className="space-y-6" dir="rtl">
-      {/* 1. Stitch Top Operations Control Toolbar */}
+      {/* 1. Header Toolbar */}
       <div className="bg-white rounded-2xl border border-zinc-200/90 p-5 shadow-xs card-interactive animate-slide-up flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div className="flex flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
@@ -219,17 +329,14 @@ export const TasksView: React.FC = () => {
               <Wrench className="w-5 h-5 text-orange-400" />
             </span>
             <h1 className="text-base sm:text-lg font-black text-zinc-900 tracking-tight">
-              مدیریت دستور کارهای فنی و تعمیرات و نگهداری (PM/CM)
+              مدیریت و پیگیری دستور کارهای سازمانی و فنی
             </h1>
             <span className="px-2.5 py-0.5 rounded-full font-bold text-[11px] bg-orange-50 text-orange-700 border border-orange-200">
-              موتور Plane • فاز ۱
-            </span>
-            <span className="hidden md:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-zinc-100 text-zinc-600 font-semibold text-[11px]">
-              شیفت فعال: A1
+              سامانه عملیات هوشمند مکرر
             </span>
           </div>
           <p className="text-xs text-zinc-500">
-            واحد مکانیزه بازآفرینی پلیمر - هماهنگی برخط دستور کارها با خطوط تولید و کارگاه‌های مکرر
+            تخصیص وظایف به پرسنل واقعی، تعیین مسئول پیگیری، همگام‌سازی اعلان‌های بله و مدیریت مهلت تحویل
           </p>
         </div>
 
@@ -245,7 +352,7 @@ export const TasksView: React.FC = () => {
               }`}
             >
               <Kanban className="w-3.5 h-3.5" />
-              <span>کانبان صنعتی</span>
+              <span>بورد کانبان</span>
             </button>
             <button
               onClick={() => setViewMode("table")}
@@ -258,10 +365,22 @@ export const TasksView: React.FC = () => {
               <TableIcon className="w-3.5 h-3.5" />
               <span>جدول داده</span>
             </button>
+            <button
+              onClick={() => setViewMode("trash")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                viewMode === "trash"
+                  ? "bg-white text-rose-600 shadow-2xs"
+                  : "text-zinc-600 hover:text-zinc-900"
+              }`}
+              title="تسک‌های حذف شده"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>سطل آشغال ({trashTasks.length})</span>
+            </button>
           </div>
 
           <button
-            onClick={loadTasks}
+            onClick={loadData}
             className="p-2 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 border border-zinc-200 rounded-xl transition-colors cursor-pointer"
             title="بروزرسانی داده‌ها"
           >
@@ -270,56 +389,116 @@ export const TasksView: React.FC = () => {
 
           <button
             onClick={() => setIsCreateOpen(true)}
-            className="h-9 px-3.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-orange-500/20 transition-all cursor-pointer"
+            className="h-9 px-4 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-orange-500/20 transition-all cursor-pointer active:scale-95"
           >
             <Plus className="w-4 h-4" />
-            <span>+ ایجاد دستور کار جدید</span>
+            <span>ثبت تسک جدید</span>
           </button>
         </div>
       </div>
 
-      {/* 2. Stitch Filters Strip */}
-      <div className="bg-white p-3.5 rounded-xl border border-zinc-200/90 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="font-semibold text-zinc-500 flex items-center gap-1">
-            <Filter className="w-3.5 h-3.5 text-zinc-400" />
-            فیلترها:
-          </span>
+      {/* 2. Filters Strip */}
+      {viewMode !== "trash" && (
+        <div className="bg-white p-3.5 rounded-xl border border-zinc-200/90 shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="font-semibold text-zinc-500 flex items-center gap-1">
+              <Filter className="w-3.5 h-3.5 text-zinc-400" />
+              فیلترها:
+            </span>
 
-          {/* Filter Location / Factory */}
-          <select
-            value={selectedLocation}
-            onChange={(e) => setSelectedLocation(e.target.value)}
-            className="px-2.5 py-1 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-700 text-xs focus:bg-white focus:border-orange-500 transition-colors font-medium"
-          >
-            <option value="all">موقعیت و شعب: همه (دفتر مرکزی و کارخانه‌ها)</option>
-            <option value="central_office">دفتر مرکزی</option>
-            <option value="mahshahr_plant">کارخانه ماهشهر</option>
-            <option value="qazvin_plant">کارخانه قزوین</option>
-          </select>
+            {/* Filter Location / Branch */}
+            <select
+              value={selectedLocation}
+              onChange={(e) => setSelectedLocation(e.target.value)}
+              className="px-2.5 py-1 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-700 text-xs focus:bg-white focus:border-orange-500 transition-colors font-medium cursor-pointer"
+            >
+              <option value="all">موقعیت: همه (دفتر مرکزی و کارخانه‌ها)</option>
+              <option value="central_office">دفتر مرکزی</option>
+              <option value="mahshahr_plant">کارخانه ماهشهر</option>
+              <option value="qazvin_plant">کارخانه قزوین</option>
+            </select>
 
-          {/* Filter Priority */}
-          <select
-            value={selectedPriority}
-            onChange={(e) => setSelectedPriority(e.target.value)}
-            className="px-2.5 py-1 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-700 text-xs focus:bg-white focus:border-orange-500 transition-colors"
-          >
-            <option value="all">اولویت: همه سطوح</option>
-            <option value="urgent">بحرانی (کد قرمز توقف خط)</option>
-            <option value="high">فوری (تعمیر در شیفت)</option>
-            <option value="medium">متوسط (پیشگیرانه PM)</option>
-            <option value="low">پایین (بازرسی روتین)</option>
-          </select>
+            {/* Filter Priority */}
+            <select
+              value={selectedPriority}
+              onChange={(e) => setSelectedPriority(e.target.value)}
+              className="px-2.5 py-1 bg-zinc-50 border border-zinc-200 rounded-lg text-zinc-700 text-xs focus:bg-white focus:border-orange-500 transition-colors cursor-pointer"
+            >
+              <option value="all">اولویت: همه سطوح</option>
+              <option value="critical">اولویت بحرانی</option>
+              <option value="urgent">اولویت فوری</option>
+              <option value="medium">اولویت متوسط</option>
+              <option value="low">اولویت پایین</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-1.5 text-zinc-400 text-[11px]">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span>متصل به پایگاه داده و ربات بله</span>
+          </div>
         </div>
+      )}
 
-        <div className="flex items-center gap-1.5 text-zinc-400 text-[11px]">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-          <span>بروزرسانی زنده تله‌متری خط: فعال</span>
+      {/* 3. Main Views (Kanban / Table / Trash) */}
+      {viewMode === "trash" ? (
+        <div className="bg-white rounded-2xl border border-zinc-200/90 p-5 shadow-xs space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
+            <div className="flex items-center gap-2">
+              <Trash2 className="w-5 h-5 text-rose-500" />
+              <div>
+                <h3 className="text-sm font-bold text-zinc-900">سطل آشغال (تسک‌های بایگانی و حذف شده)</h3>
+                <p className="text-xs text-zinc-400">تسک‌ها در این بخش نگهداری می‌شوند و هر زمان مایل باشید می‌توانید آن‌ها را بازیابی نمایید.</p>
+              </div>
+            </div>
+            <span className="text-xs font-mono font-bold bg-rose-50 text-rose-700 px-2.5 py-1 rounded-lg">
+              {trashTasks.length} تسک
+            </span>
+          </div>
+
+          {trashTasks.length === 0 ? (
+            <div className="py-12 text-center text-zinc-400">
+              <CheckCircle2 className="w-10 h-10 mx-auto mb-2 text-zinc-300" />
+              <p className="text-xs font-bold text-zinc-600">سطل آشغال خالی است.</p>
+              <p className="text-[11px] text-zinc-400 mt-0.5">هیچ تسک حذف‌شده‌ای در سیستم وجود ندارد.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-zinc-100">
+              {trashTasks.map((task) => (
+                <div key={task.id} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-zinc-50/70 p-2 rounded-xl transition-colors">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-zinc-900">{task.title}</span>
+                      <StatusBadge status={task.priority} />
+                    </div>
+                    <div className="flex items-center gap-3 text-[11px] text-zinc-400 font-mono">
+                      <span>مجری: {task.assignee_name || "تخصیص‌نیافته"}</span>
+                      {task.follower_name && <span>پیگیر: {task.follower_name}</span>}
+                      <span>مهلت: {task.due_date}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleRestoreTask(task.id)}
+                      className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>بازیابی تسک</span>
+                    </button>
+                    <button
+                      onClick={() => handlePermanentDelete(task.id)}
+                      className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>حذف دائم</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      </div>
-
-      {/* 3. Main Board or Table */}
-      {viewMode === "kanban" ? (
+      ) : viewMode === "kanban" ? (
         <KanbanBoard
           tasks={filteredTasks}
           onTaskClick={(task) => setSelectedTask(task)}
@@ -334,169 +513,138 @@ export const TasksView: React.FC = () => {
           columns={columns}
           data={filteredTasks}
           title="فهرست جامع دستور کارهای صنعتی"
-          subtitle="اتصال دوطرفه با API موتور Plane"
+          subtitle="اتصال دوطرفه با پایگاه داده و ربات بله"
           onExportExcel={() => api.exports.downloadTasksExcel()}
           onExportDocx={() => api.exports.downloadTasksDocx()}
         />
       )}
 
-      {/* 4. Stitch Docked Shift KPIs */}
-      <div className="bg-white rounded-2xl border border-zinc-200/90 p-5 shadow-xs">
-        <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
-          <div className="flex items-center gap-2">
-            <Cpu className="w-4 h-4 text-orange-600" />
-            <h3 className="text-xs font-bold text-zinc-900">
-              شاخص‌های کلیدی عملکرد شیفت جاری (Shift Handover KPIs)
-            </h3>
-          </div>
-          <span className="text-[10px] font-mono text-zinc-400">بروزرسانی زنده اسکادا</span>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
-          <div className="bg-zinc-50 p-3 rounded-xl border border-zinc-100">
-            <span className="text-[10px] text-zinc-400 block">کل دستور کارهای شیفت</span>
-            <div className="flex items-baseline gap-1 mt-1">
-              <span className="text-xl font-black text-zinc-900 font-mono">{tasks.length || 24}</span>
-              <span className="text-[10px] text-zinc-400">مورد</span>
-            </div>
-            <span className="text-[10px] text-emerald-600 font-bold block mt-0.5">↑ ۸٪ نسبت به شیفت قبل</span>
-          </div>
-
-          <div className="bg-zinc-50 p-3 rounded-xl border border-zinc-100">
-            <span className="text-[10px] text-zinc-400 block">وظایف با موفقیت مختومه</span>
-            <div className="flex items-baseline gap-1 mt-1">
-              <span className="text-xl font-black text-emerald-600 font-mono">
-                {tasks.filter((t) => t.state === "done").length || 18}
-              </span>
-              <span className="text-[10px] text-zinc-400">مورد</span>
-            </div>
-            <span className="text-[10px] text-zinc-500 font-semibold block mt-0.5">راندمان تکمیل: ۹۲٪</span>
-          </div>
-
-          <div className="bg-zinc-50 p-3 rounded-xl border border-zinc-100">
-            <span className="text-[10px] text-zinc-400 block">متوسط زمان رفع نقص (MTTR)</span>
-            <div className="flex items-baseline gap-1 mt-1">
-              <span className="text-xl font-black text-zinc-900 font-mono">۳۸</span>
-              <span className="text-[10px] text-zinc-400">دقیقه</span>
-            </div>
-            <span className="text-[10px] text-emerald-600 font-bold block mt-0.5">زیر سقف مجاز (۴۵ دقیقه)</span>
-          </div>
-
-          <div className="bg-zinc-50 p-3 rounded-xl border border-zinc-100">
-            <span className="text-[10px] text-zinc-400 block">توقف ناخواسته خطوط</span>
-            <div className="flex items-baseline gap-1 mt-1">
-              <span className="text-xl font-black text-emerald-600 font-mono">۰</span>
-              <span className="text-[10px] text-zinc-400">دقیقه</span>
-            </div>
-            <span className="text-[10px] text-emerald-600 font-bold block mt-0.5">۱۰۰٪ پایداری بدون خرابی</span>
-          </div>
-        </div>
-      </div>
-
       {/* CREATE TASK MODAL */}
       <Modal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
-        title="ثبت دستور کار فنی جدید در موتور Plane"
-        description="مشخصات وظیفه، مسئول اجرا، قطعات مورد نیاز و سررسید را وارد نمایید."
+        title="ثبت تسک جدید"
+        description="مشخصات وظیفه، مسئول اجرا، مسئول پیگیری و مهلت تحویل را تعیین نمایید."
       >
         <form onSubmit={handleCreateTask} className="space-y-4 text-right">
           <div>
-            <label className="block text-xs font-semibold text-zinc-700 mb-1">
-              عنوان دستور کار <span className="text-rose-500">*</span>
+            <label className="block text-xs font-bold text-zinc-700 mb-1">
+              عنوان تسک <span className="text-rose-500">*</span>
             </label>
             <input
               type="text"
               required
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
-              placeholder="مثال: تعویض فیلتر هیدرولیک خط کمپاندینگ A1"
+              placeholder="مثال: تنظیم دمای اکسترودر خط بازآفرینی A1"
               className="w-full px-3 py-2 text-xs bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-hidden focus:bg-white focus:border-orange-500 transition-colors"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-zinc-700 mb-1">شرح و جزییات عملیاتی</label>
+            <label className="block text-xs font-bold text-zinc-700 mb-1">شرح و جزییات عملیاتی</label>
             <textarea
               rows={3}
               value={newDesc}
               onChange={(e) => setNewDesc(e.target.value)}
-              placeholder="دستورالعمل، ابزارهای مورد نیاز یا نکات ایمنی شیفت..."
+              placeholder="توضیحات تکمیلی، مراحل اجرا و نکات مورد نیاز..."
               className="w-full px-3 py-2 text-xs bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-hidden focus:bg-white focus:border-orange-500 transition-colors"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-zinc-700 mb-1">اولویت</label>
+              <label className="block text-xs font-bold text-zinc-700 mb-1">سطح اولویت</label>
               <select
                 value={newPriority}
                 onChange={(e) => setNewPriority(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-hidden focus:bg-white focus:border-orange-500 transition-colors"
+                className="w-full px-3 py-2 text-xs bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-hidden focus:bg-white focus:border-orange-500 transition-colors font-medium cursor-pointer"
               >
-                <option value="urgent">بحرانی و توقف خط</option>
-                <option value="high">فوری در شیفت</option>
-                <option value="medium">متوسط (پیشگیرانه PM)</option>
-                <option value="low">پایین (بازرسی روتین)</option>
+                <option value="low">اولویت پایین</option>
+                <option value="medium">اولویت متوسط</option>
+                <option value="urgent">اولویت فوری</option>
+                <option value="critical">اولویت بحرانی</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-zinc-700 mb-1">مرحله شروع</label>
+              <label className="block text-xs font-bold text-zinc-700 mb-1">مرحله شروع</label>
               <select
                 value={newState}
                 onChange={(e) => setNewState(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-hidden focus:bg-white focus:border-orange-500 transition-colors"
+                className="w-full px-3 py-2 text-xs bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-hidden focus:bg-white focus:border-orange-500 transition-colors font-medium cursor-pointer"
               >
                 <option value="todo">برنامه‌ریزی شده</option>
                 <option value="in_progress">در حال اجرا</option>
                 <option value="done">اتمام یافته</option>
-                <option value="cancelled">لغو شده</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-zinc-700 mb-1">محل سازمانی / شعبه</label>
-              <select
-                value={newLocation}
-                onChange={(e) => setNewLocation(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-hidden focus:bg-white focus:border-orange-500 transition-colors font-medium"
-              >
-                <option value="central_office">دفتر مرکزی</option>
-                <option value="mahshahr_plant">کارخانه ماهشهر</option>
-                <option value="qazvin_plant">کارخانه قزوین</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-zinc-700 mb-1">مسئول اجرا</label>
-              <select
-                value={newAssignee}
-                onChange={(e) => setNewAssignee(e.target.value)}
-                className="w-full px-3 py-2 text-xs bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-hidden focus:bg-white focus:border-orange-500 transition-colors"
-              >
-                <option value="مهندس محمد رضایی">مهندس محمد رضایی (نگهداری و تعمیرات)</option>
-                <option value="مهندس رضا احمدی">مهندس رضا احمدی (سرپرست تولید)</option>
-                <option value="مهندس علی راد">مهندس علی راد (مهندسی فرآیند)</option>
-                <option value="خانم مهندس مرادی">خانم مهندس مرادی (کنترل کیفیت QC)</option>
               </select>
             </div>
           </div>
 
           <div>
-            <JalaliDatePicker value={newDueDate} onChange={setNewDueDate} />
+            <label className="block text-xs font-bold text-zinc-700 mb-1">محل سازمانی / شعبه</label>
+            <select
+              value={newLocation}
+              onChange={(e) => setNewLocation(e.target.value)}
+              className="w-full px-3 py-2 text-xs bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-hidden focus:bg-white focus:border-orange-500 transition-colors font-bold cursor-pointer"
+            >
+              <option value="central_office">دفتر مرکزی</option>
+              <option value="mahshahr_plant">کارخانه ماهشهر</option>
+              <option value="qazvin_plant">کارخانه قزوین</option>
+            </select>
           </div>
 
+          {/* User Selectors: Assignee & Follower */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+            <div>
+              <label className="block text-xs font-bold text-zinc-700 mb-1 flex items-center justify-between">
+                <span>مسئول اجرا (Assignee) <span className="text-rose-500">*</span></span>
+                <span className="text-[10px] text-zinc-400 font-normal">دریافت‌کننده تسک</span>
+              </label>
+              <select
+                value={newAssigneeId}
+                onChange={(e) => setNewAssigneeId(e.target.value)}
+                required
+                className="w-full px-3 py-2 text-xs bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-hidden focus:bg-white focus:border-orange-500 transition-colors font-bold cursor-pointer"
+              >
+                {effectiveMembers.length > 0 ? (
+                  effectiveMembers.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name} ({m.role}) {m.bale_chat_id ? "📱" : ""}
+                    </option>
+                  ))
+                ) : (
+                  <option value="">هیچ کاربری یافت نشد</option>
+                )}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-zinc-700 mb-1 flex items-center justify-between">
+                <span>مسئول پیگیری (Follow-up)</span>
+                <span className="text-[10px] text-zinc-400 font-normal">کنترل روند کار</span>
+              </label>
+              <select
+                value={newFollowerId}
+                onChange={(e) => setNewFollowerId(e.target.value)}
+                className="w-full px-3 py-2 text-xs bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-hidden focus:bg-white focus:border-orange-500 transition-colors font-medium cursor-pointer"
+              >
+                <option value="">بدون مسئول پیگیری</option>
+                {members.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name} ({m.role}) {m.bale_chat_id ? "📱" : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Modern Persian Jalali DatePicker with Calendar Popup */}
           <div>
-            <label className="block text-xs font-semibold text-zinc-700 mb-1">برچسب‌ها</label>
-            <input
-              type="text"
-              value={newTags}
-              onChange={(e) => setNewTags(e.target.value)}
-              placeholder="تولید, قطعات, فوری"
-              className="w-full px-3 py-2 text-xs bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-hidden focus:bg-white focus:border-orange-500 transition-colors"
+            <JalaliDatePicker
+              label="مهلت تحویل (ددلاین)"
+              value={newDueDate}
+              onChange={setNewDueDate}
             />
           </div>
 
@@ -510,9 +658,9 @@ export const TasksView: React.FC = () => {
             </button>
             <button
               type="submit"
-              className="px-5 py-2 text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-xl shadow-xs transition-all cursor-pointer"
+              className="px-5 py-2 text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-xl shadow-xs transition-all cursor-pointer active:scale-95"
             >
-              ایجاد دستور کار
+              ثبت و ایجاد تسک
             </button>
           </div>
         </form>
@@ -522,7 +670,7 @@ export const TasksView: React.FC = () => {
       <Modal
         isOpen={Boolean(selectedTask)}
         onClose={() => setSelectedTask(null)}
-        title={selectedTask ? `جزئیات دستور کار #${selectedTask.id}` : ""}
+        title={selectedTask ? `جزئیات تسک #${selectedTask.id}` : ""}
         maxWidth="xl"
       >
         {selectedTask && (
@@ -531,7 +679,7 @@ export const TasksView: React.FC = () => {
               <div className="flex items-center gap-2 mb-2">
                 <StatusBadge status={selectedTask.state} />
                 <StatusBadge status={selectedTask.priority} />
-                <span className="text-xs text-zinc-400 font-mono">شناسه: WO-#{selectedTask.id}</span>
+                <span className="text-xs text-zinc-400 font-mono">شناسه: #{selectedTask.id}</span>
               </div>
               <h3 className="text-sm sm:text-base font-bold text-zinc-900">{selectedTask.title}</h3>
               {selectedTask.description && (
@@ -549,7 +697,6 @@ export const TasksView: React.FC = () => {
                   { id: "todo", label: "برنامه‌ریزی شده" },
                   { id: "in_progress", label: "در حال اجرا" },
                   { id: "done", label: "اتمام یافته" },
-                  { id: "cancelled", label: "لغو شده" },
                 ].map((st) => (
                   <button
                     key={st.id}
@@ -570,16 +717,23 @@ export const TasksView: React.FC = () => {
             </div>
 
             {/* Info Grid */}
-            <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
               <div className="p-3 bg-white border border-zinc-200 rounded-xl">
                 <span className="text-zinc-400 block mb-1 text-[10px]">مسئول اجرا</span>
                 <span className="font-bold text-zinc-800 flex items-center gap-1.5">
                   <User className="w-3.5 h-3.5 text-orange-600" />
-                  {selectedTask.assignee_name || "کادر فنی"}
+                  {selectedTask.assignee_name || "تخصیص‌نیافته"}
                 </span>
               </div>
               <div className="p-3 bg-white border border-zinc-200 rounded-xl">
-                <span className="text-zinc-400 block mb-1 text-[10px]">تاریخ سررسید شیفت</span>
+                <span className="text-zinc-400 block mb-1 text-[10px]">مسئول پیگیری</span>
+                <span className="font-bold text-zinc-800 flex items-center gap-1.5">
+                  <UserCheck className="w-3.5 h-3.5 text-blue-600" />
+                  {selectedTask.follower_name || "تعیین‌نشده"}
+                </span>
+              </div>
+              <div className="p-3 bg-white border border-zinc-200 rounded-xl">
+                <span className="text-zinc-400 block mb-1 text-[10px]">مهلت تحویل (ددلاین)</span>
                 <span className="font-bold text-zinc-800 flex items-center gap-1.5 font-mono">
                   <Clock className="w-3.5 h-3.5 text-amber-600" />
                   {selectedTask.due_date || "نامشخص"}
@@ -631,15 +785,15 @@ export const TasksView: React.FC = () => {
               </div>
             </div>
 
-            {/* Delete button */}
+            {/* Delete button (Soft Delete) */}
             <div className="pt-3 border-t border-zinc-100 flex justify-between items-center">
               <button
                 type="button"
-                onClick={() => handleDeleteTask(selectedTask.id)}
-                className="text-xs text-rose-600 hover:text-rose-800 flex items-center gap-1 cursor-pointer"
+                onClick={() => handleSoftDelete(selectedTask.id)}
+                className="text-xs text-rose-600 hover:text-rose-800 flex items-center gap-1 cursor-pointer font-medium"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>حذف این تسک</span>
+                <span>انتقال به سطل آشغال</span>
               </button>
               <button
                 type="button"

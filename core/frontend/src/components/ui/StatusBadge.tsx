@@ -15,10 +15,11 @@ const STATUS_COLOR_MAP: Record<string, { bg: string; text: string; dot: string; 
   cancelled: { bg: "bg-rose-50", text: "text-rose-700", dot: "bg-rose-500", label: "لغو شده" },
 
   // Priorities
-  urgent: { bg: "bg-red-50", text: "text-red-700", dot: "bg-red-600", label: "فوری" },
-  high: { bg: "bg-orange-50", text: "text-orange-700", dot: "bg-orange-500", label: "بالا" },
-  medium: { bg: "bg-sky-50", text: "text-sky-700", dot: "bg-sky-500", label: "متوسط" },
-  low: { bg: "bg-slate-100", text: "text-slate-600", dot: "bg-slate-400", label: "پایین" },
+  critical: { bg: "bg-red-100", text: "text-red-800", dot: "bg-red-600 animate-pulse", label: "اولویت بحرانی" },
+  urgent: { bg: "bg-orange-100", text: "text-orange-800", dot: "bg-orange-600", label: "اولویت فوری" },
+  high: { bg: "bg-orange-50", text: "text-orange-700", dot: "bg-orange-500", label: "اولویت فوری" },
+  medium: { bg: "bg-sky-50", text: "text-sky-700", dot: "bg-sky-500", label: "اولویت متوسط" },
+  low: { bg: "bg-slate-100", text: "text-slate-600", dot: "bg-slate-400", label: "اولویت پایین" },
 
   // Procurement
   DRAFT: { bg: "bg-slate-100", text: "text-slate-700", dot: "bg-slate-400", label: "پیش‌نویس" },

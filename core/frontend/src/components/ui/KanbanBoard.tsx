@@ -9,10 +9,15 @@ export interface TaskItem {
   priority: string
   state: string
   assignee_name?: string
+  assignee_id?: string
+  follower_name?: string
+  follower_id?: string
   location?: string
   location_title?: string
   due_date?: string
   tags?: string[]
+  is_deleted?: boolean
+  deleted_at?: string
   comments?: Array<{ author: string; content: string; created_at: string }>
 }
 

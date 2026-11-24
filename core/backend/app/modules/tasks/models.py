@@ -14,10 +14,14 @@ class TaskRecord(SQLModel, table=True):
     priority: str = Field(default="medium", max_length=50)
     assignee_name: str = Field(default="تخصیص‌نیافته", max_length=255)
     assignee_id: str = Field(default="unassigned", max_length=100)
+    follower_name: str = Field(default="", max_length=255)
+    follower_id: str = Field(default="", max_length=100)
     location: str = Field(default="central_office", max_length=100)
     due_date: str = Field(default="1405/04/01", max_length=50)
     created_at: str = Field(default="")
     tags: str = Field(default="[]")
+    is_deleted: bool = Field(default=False)
+    deleted_at: str = Field(default="")
     metadata_json: str = Field(default="{}")
     comments_json: str = Field(default="[]")
 
@@ -52,11 +56,15 @@ class TaskRecord(SQLModel, table=True):
             "priority": self.priority,
             "assignee_name": self.assignee_name,
             "assignee_id": self.assignee_id,
+            "follower_name": getattr(self, "follower_name", "") or "",
+            "follower_id": getattr(self, "follower_id", "") or "",
             "location": loc,
             "location_title": location_map.get(loc, loc),
             "due_date": self.due_date,
             "created_at": self.created_at or datetime.now(UTC).isoformat(),
             "tags": parsed_tags,
+            "is_deleted": bool(getattr(self, "is_deleted", False)),
+            "deleted_at": getattr(self, "deleted_at", "") or "",
             "metadata": parsed_metadata,
             "comments": parsed_comments,
         }

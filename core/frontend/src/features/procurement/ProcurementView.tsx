@@ -36,10 +36,10 @@ export const ProcurementView: React.FC = () => {
   // Form states
   const [title, setTitle] = useState("")
   const [department, setDepartment] = useState("تولید")
-  const [priority, setPriority] = useState("high")
+  const [priority, setPriority] = useState("medium")
   const [justification, setJustification] = useState("")
   const [items, setItems] = useState([
-    { item_name: "مستربچ مشکی پایه پلی‌اتیلن و پایدارکننده UV", quantity: 2500, unit: "کیلوگرم", estimated_unit_price: 296000, part_number: "MB-PE-UV402" },
+    { item_name: "", quantity: 1, unit: "عدد", estimated_unit_price: 0, part_number: "" },
   ])
 
   const loadRequests = async () => {
@@ -362,144 +362,136 @@ export const ProcurementView: React.FC = () => {
       </div>
 
       {/* 3. Stitch 5-Tier Industrial Flow Stepper Graphic */}
-      <div className="bg-white rounded-2xl border border-zinc-200/90 shadow-xs overflow-hidden flex flex-col">
-        {/* Section Header */}
-        <div className="p-4 sm:p-5 bg-zinc-50 border-b border-zinc-200/80 flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-2 h-10 bg-[#e02b00] rounded-sm shrink-0" />
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs sm:text-sm font-bold text-zinc-900">
-                  پرونده فعال بازبینی: {activeReview?.request_number || "PR-403-891"}
-                </span>
-                <span className="px-2 py-0.5 rounded-md font-bold text-[10px] bg-orange-50 text-orange-700 border border-orange-200">
-                  اولویت: خیلی بالا (خط مقدم بازآفرینی)
-                </span>
+      {activeReview && (
+        <div className="bg-white rounded-2xl border border-zinc-200/90 shadow-xs overflow-hidden flex flex-col">
+          {/* Section Header */}
+          <div className="p-4 sm:p-5 bg-zinc-50 border-b border-zinc-200/80 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-10 bg-[#e02b00] rounded-sm shrink-0" />
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs sm:text-sm font-bold text-zinc-900">
+                    پرونده فعال بازبینی: {activeReview.request_number}
+                  </span>
+                  <span className="px-2 py-0.5 rounded-md font-bold text-[10px] bg-orange-50 text-orange-700 border border-orange-200">
+                    {activeReview.status}
+                  </span>
+                </div>
+                <p className="text-[11px] text-zinc-500 mt-0.5 line-clamp-1">
+                  عنوان: {activeReview.title}
+                </p>
               </div>
-              <p className="text-[11px] text-zinc-500 mt-0.5 line-clamp-1">
-                عنوان: {activeReview?.title || "تأمین فوری مستربچ مشکی پایه پلی‌اتیلن و پایدارکننده UV"}
-              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-zinc-500">دپارتمان: {activeReview.department}</span>
+              <span className="px-2.5 py-1 rounded-lg bg-zinc-100 font-bold font-mono text-xs text-zinc-800">
+                مبلغ: {(activeReview.total_estimated_cost || 0).toLocaleString()} ریال
+              </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-zinc-500">مرکز هزینه: خط گرانول ۲</span>
-            <span className="px-2.5 py-1 rounded-lg bg-zinc-100 font-bold font-mono text-xs text-zinc-800">
-              مبلغ: {(activeReview?.total_estimated_cost || 740000000).toLocaleString()} ریال
-            </span>
-          </div>
-        </div>
+          {/* 5 Stepper Columns */}
+          <div className="p-4 sm:p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
+              {/* Step 1 */}
+              <div className="flex flex-col bg-zinc-50 p-3.5 rounded-xl border border-zinc-200/80 relative overflow-hidden">
+                <div className="w-full h-1 bg-emerald-500 absolute top-0 right-0" />
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-mono text-zinc-400">مرحله ۱</span>
+                  <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs">
+                    <Check className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+                <h4 className="text-xs font-bold text-zinc-900">ثبت اولیه متقاضی</h4>
+                <p className="text-[10px] text-zinc-500 mt-1">{activeReview.requester_name}</p>
+                <div className="mt-2 pt-1 border-t border-zinc-200/60 text-[10px] text-emerald-700 font-semibold">
+                  درخواست ثبت شد
+                </div>
+              </div>
 
-        {/* 5 Stepper Columns */}
-        <div className="p-4 sm:p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
-            {/* Step 1 */}
-            <div className="flex flex-col bg-zinc-50 p-3.5 rounded-xl border border-zinc-200/80 relative overflow-hidden">
-              <div className="w-full h-1 bg-emerald-500 absolute top-0 right-0" />
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-mono text-zinc-400">مرحله ۱</span>
-                <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs">
-                  <Check className="w-3.5 h-3.5" />
-                </span>
+              {/* Step 2 */}
+              <div className="flex flex-col bg-zinc-50 p-3.5 rounded-xl border border-zinc-200/80 relative overflow-hidden">
+                <div className="w-full h-1 bg-emerald-500 absolute top-0 right-0" />
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-mono text-zinc-400">مرحله ۲</span>
+                  <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs">
+                    <Check className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+                <h4 className="text-xs font-bold text-zinc-900">بررسی موجودی انبار</h4>
+                <p className="text-[10px] text-zinc-500 mt-1">انبار متمرکز ملارد</p>
+                <div className="mt-2 pt-1 border-t border-zinc-200/60 text-[10px] text-emerald-700 font-semibold">
+                  نیاز به خرید تایید شد
+                </div>
               </div>
-              <h4 className="text-xs font-bold text-zinc-900">ثبت توسط رئیس خط</h4>
-              <p className="text-[10px] text-zinc-500 mt-1">مهندس رستمی (سرپرست خط)</p>
-              <div className="mt-2 pt-1 border-t border-zinc-200/60 text-[10px] text-emerald-700 font-semibold">
-                تأیید فنی ضمیمه شد
-              </div>
-            </div>
 
-            {/* Step 2 */}
-            <div className="flex flex-col bg-zinc-50 p-3.5 rounded-xl border border-zinc-200/80 relative overflow-hidden">
-              <div className="w-full h-1 bg-emerald-500 absolute top-0 right-0" />
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-mono text-zinc-400">مرحله ۲</span>
-                <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs">
-                  <Check className="w-3.5 h-3.5" />
-                </span>
+              {/* Step 3 */}
+              <div className="flex flex-col bg-zinc-50 p-3.5 rounded-xl border border-zinc-200/80 relative overflow-hidden">
+                <div className="w-full h-1 bg-emerald-500 absolute top-0 right-0" />
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-mono text-zinc-400">مرحله ۳</span>
+                  <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs">
+                    <Check className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+                <h4 className="text-xs font-bold text-zinc-900">استعلام و برآورد مالی</h4>
+                <p className="text-[10px] text-zinc-500 mt-1">واحد تدارکات و بازرگانی</p>
+                <div className="mt-2 pt-1 border-t border-zinc-200/60 text-[10px] text-emerald-700 font-semibold">
+                  برآورد هزینه پیوست شد
+                </div>
               </div>
-              <h4 className="text-xs font-bold text-zinc-900">بررسی انبار و کاردکس</h4>
-              <p className="text-[10px] text-zinc-500 mt-1">انبار متمرکز - مهندس حیدری</p>
-              <div className="mt-2 pt-1 border-t border-zinc-200/60 text-[10px] text-emerald-700 font-semibold">
-                موجودی فیزیکی: صفر (تأیید)
-              </div>
-            </div>
 
-            {/* Step 3 */}
-            <div className="flex flex-col bg-zinc-50 p-3.5 rounded-xl border border-zinc-200/80 relative overflow-hidden">
-              <div className="w-full h-1 bg-emerald-500 absolute top-0 right-0" />
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-mono text-zinc-400">مرحله ۳</span>
-                <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs">
-                  <Check className="w-3.5 h-3.5" />
-                </span>
+              {/* Step 4 (Active Action) */}
+              <div className="flex flex-col bg-orange-50/60 p-3.5 rounded-xl border-2 border-orange-500/80 relative overflow-hidden shadow-xs">
+                <div className="w-full h-1 bg-orange-500 absolute top-0 right-0" />
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-mono text-orange-700 font-bold">مرحله ۴</span>
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500" />
+                  </span>
+                </div>
+                <h4 className="text-xs font-bold text-zinc-900">تصویب مدیریت</h4>
+                <p className="text-[10px] text-zinc-600 mt-1">مدیریت عامل و ارشد</p>
+                <div className="mt-2 pt-1 border-t border-orange-200 text-[10px] text-orange-700 font-bold">
+                  {activeReview.status === "PENDING_APPROVAL" ? "در انتظار تایید" : "تعیین تکلیف شد"}
+                </div>
               </div>
-              <h4 className="text-xs font-bold text-zinc-900">استعلام ۳ تأمین‌کننده</h4>
-              <p className="text-[10px] text-zinc-500 mt-1">واحد بازرگانی - مهندس شریفی</p>
-              <div className="mt-2 pt-1 border-t border-zinc-200/60 text-[10px] text-emerald-700 font-semibold">
-                استعلام مقایسه‌ای ضمیمه شد
-              </div>
-            </div>
 
-            {/* Step 4 (Active Action) */}
-            <div className="flex flex-col bg-orange-50/60 p-3.5 rounded-xl border-2 border-orange-500/80 relative overflow-hidden shadow-xs">
-              <div className="w-full h-1 bg-orange-500 absolute top-0 right-0" />
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-mono text-orange-700 font-bold">مرحله ۴ (در جریان)</span>
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-orange-500" />
-                </span>
-              </div>
-              <h4 className="text-xs font-bold text-zinc-900">تصویب مدیر مالی و ارشد</h4>
-              <p className="text-[10px] text-zinc-600 mt-1">کارتابل شما: سارا محمدی</p>
-              <div className="mt-2 pt-1 border-t border-orange-200 text-[10px] text-orange-700 font-bold">
-                در انتظار اقدام نهایی
-              </div>
-            </div>
-
-            {/* Step 5 */}
-            <div className="flex flex-col bg-zinc-50/50 p-3.5 rounded-xl border border-zinc-200/60 relative overflow-hidden opacity-60">
-              <div className="w-full h-1 bg-zinc-300 absolute top-0 right-0" />
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-mono text-zinc-400">مرحله ۵</span>
-                <span className="w-5 h-5 rounded-full bg-zinc-200 text-zinc-500 flex items-center justify-center text-xs">
-                  ۵
-                </span>
-              </div>
-              <h4 className="text-xs font-bold text-zinc-600">صدور سفارش رسمی (PO)</h4>
-              <p className="text-[10px] text-zinc-400 mt-1">حسابداری و تدارکات</p>
-              <div className="mt-2 pt-1 border-t border-zinc-200 text-[10px] text-zinc-400">
-                پس از تخصیص بودجه
+              {/* Step 5 */}
+              <div className="flex flex-col bg-zinc-50/50 p-3.5 rounded-xl border border-zinc-200/60 relative overflow-hidden opacity-60">
+                <div className="w-full h-1 bg-zinc-300 absolute top-0 right-0" />
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-mono text-zinc-400">مرحله ۵</span>
+                  <span className="w-5 h-5 rounded-full bg-zinc-200 text-zinc-500 flex items-center justify-center text-xs">
+                    ۵
+                  </span>
+                </div>
+                <h4 className="text-xs font-bold text-zinc-600">صدور سفارش رسمی (PO)</h4>
+                <p className="text-[10px] text-zinc-400 mt-1">تدارکات و انبارداری</p>
+                <div className="mt-2 pt-1 border-t border-zinc-200 text-[10px] text-zinc-400">
+                  {activeReview.status === "APPROVED" || activeReview.status === "PAID" ? "تایید شده" : "پس از تصویب"}
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Action Deck for Selected PR */}
-        {activeReview && (
+          {/* Action Deck for Selected PR */}
           <div className="px-5 py-3.5 bg-zinc-50 border-t border-zinc-200/80 flex flex-col md:flex-row md:items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-3 text-xs">
               <div className="flex items-center gap-1.5 text-zinc-600">
-                <span className="text-zinc-400">تأمین‌کننده پیشنهادی:</span>
-                <span className="font-bold text-zinc-800">صنایع شیمیایی آریا پلیمریزاسیون</span>
+                <span className="text-zinc-400">متقاضی:</span>
+                <span className="font-bold text-zinc-800">{activeReview.requester_name}</span>
               </div>
               <span className="hidden sm:inline text-zinc-300">|</span>
               <div className="flex items-center gap-1.5 text-zinc-600">
-                <span className="text-zinc-400">زمان تحویل:</span>
-                <span className="font-bold text-emerald-700">۴۸ ساعت در محل کارخانه اشتهارد</span>
+                <span className="text-zinc-400">زمان ثبت:</span>
+                <span className="font-bold text-emerald-700">{activeReview.created_at}</span>
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => toast.info("استعلام ۳ شرکت پلیمری: آریا پلیمر، بسپار شیمی، پترو شیمیایی البرز")}
-                className="px-3 py-1.5 bg-white hover:bg-zinc-100 text-zinc-700 border border-zinc-200 rounded-xl text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
-              >
-                <Eye className="w-3.5 h-3.5" />
-                <span>مشاهده ۳ استعلام</span>
-              </button>
-
               {activeReview.status === "PENDING_APPROVAL" && (
                 <>
                   <button
@@ -507,7 +499,7 @@ export const ProcurementView: React.FC = () => {
                     className="px-3 py-1.5 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 rounded-xl text-xs font-semibold flex items-center gap-1 transition-colors cursor-pointer"
                   >
                     <Undo2 className="w-3.5 h-3.5" />
-                    <span>ارجاع جهت اصلاح قیمت</span>
+                    <span>رد درخواست</span>
                   </button>
 
                   <button
@@ -515,14 +507,14 @@ export const ProcurementView: React.FC = () => {
                     className="px-4 py-1.5 bg-[#e02b00] hover:bg-[#b32000] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-95 cursor-pointer"
                   >
                     <Check className="w-4 h-4" />
-                    <span>تصویب و ابلاغ سفارش خرید (PO)</span>
+                    <span>تصویب و تایید درخواست</span>
                   </button>
                 </>
               )}
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* 4. Main Data Table */}
       <DataTable

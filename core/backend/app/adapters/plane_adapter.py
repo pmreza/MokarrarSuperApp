@@ -22,12 +22,7 @@ MOCK_STATES = [
     {"id": "done", "name": "تکمیل شده", "color": "#10B981", "group": "completed"},
 ]
 
-MOCK_MEMBERS = [
-    {"id": "user-01", "name": "مهندس محمد رضایی", "email": "rezaei@mokarrar.ir", "role": "کارشناس نگهداری"},
-    {"id": "user-02", "name": "سارا کریمی", "email": "karimi@mokarrar.ir", "role": "سرپرست کنترل کیفیت"},
-    {"id": "user-03", "name": "حمید حسینی", "email": "hosseini@mokarrar.ir", "role": "انباردار مرکزی"},
-    {"id": "user-04", "name": "علی اکبری", "email": "akbari@mokarrar.ir", "role": "تکنسین برق صنعتی"},
-]
+MOCK_MEMBERS: list[dict[str, Any]] = []
 
 
 class PlaneAdapter:

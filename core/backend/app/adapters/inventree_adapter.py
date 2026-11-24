@@ -7,93 +7,9 @@ from app.core.config import settings
 
 logger = logging.getLogger("mokarrar.inventree_adapter")
 
-MOCK_PARTS: list[dict[str, Any]] = [
-    {
-        "id": "part-101",
-        "IPN": "MOK-BRG-6205",
-        "name": "بلبرینگ شیار عمیق SKF 6205-2RSH",
-        "description": "بلبرینگ دور بالا مناسب برای الکتروموتورهای صنعتی خط تولید ۳",
-        "category_name": "قطعات مکانیکی و دورانی",
-        "total_in_stock": 42.0,
-        "minimum_stock": 15.0,
-        "units": "عدد",
-        "default_location": "انبار مرکزی - قفسه B4",
-        "active": True
-    },
-    {
-        "id": "part-102",
-        "IPN": "MOK-MOT-055",
-        "name": "الکتروموتور ۳ فاز موتوژن ۵.۵ کیلووات ۱۴۰۰ دور",
-        "description": "موتور فلنج‌دار استاندارد صنعتی پوسته آلومینیومی",
-        "category_name": "تجهیزات دوار برقی",
-        "total_in_stock": 6.0,
-        "minimum_stock": 2.0,
-        "units": "دستگاه",
-        "default_location": "انبار ماشین‌آلات سنگین",
-        "active": True
-    },
-    {
-        "id": "part-103",
-        "IPN": "MOK-VLV-REX4",
-        "name": "شیر برقی کنترل جهت هیدرولیک Rexroth 4WE6",
-        "description": "اسپول ۲۴ ولت DC مناسب پرس‌های هیدرولیک و تزریق",
-        "category_name": "تجهیزات هیدرولیک و پنوماتیک",
-        "total_in_stock": 3.0,
-        "minimum_stock": 5.0,  # Below threshold! (Alert)
-        "units": "عدد",
-        "default_location": "انبار ابزار دقیق - کمد H2",
-        "active": True
-    },
-    {
-        "id": "part-104",
-        "IPN": "MOK-BLT-8M1200",
-        "name": "تسمه تایمینگ صنعتی HTD 8M گام ۱۲۰۰ عرض ۵۰",
-        "description": "تسمه تقویت‌شده پلی‌اورتان با مغزی فولادی برای خط انتقال",
-        "category_name": "لوازم مصرفی خط انتقال",
-        "total_in_stock": 28.0,
-        "minimum_stock": 10.0,
-        "units": "حلقه",
-        "default_location": "انبار مصرفی کارخانه",
-        "active": True
-    },
-    {
-        "id": "part-105",
-        "IPN": "MOK-SEN-M18",
-        "name": "سنسور مجاورتی القایی Omron M18 سه سیمه NPN",
-        "description": "فاصله سنس ۸ میلی‌متر محافظت‌شده ضد روغن IP67",
-        "category_name": "سنسورها و اتوماسیون",
-        "total_in_stock": 19.0,
-        "minimum_stock": 8.0,
-        "units": "عدد",
-        "default_location": "انبار اتوماسیون و ابزار دقیق",
-        "active": True
-    }
-]
+MOCK_PARTS: list[dict[str, Any]] = []
 
-MOCK_STOCK_TRANSACTIONS: list[dict[str, Any]] = [
-    {
-        "id": "tx-1",
-        "part_id": "part-101",
-        "part_name": "بلبرینگ شیار عمیق SKF 6205-2RSH",
-        "type": "STOCK_IN",
-        "quantity": 20.0,
-        "batch": "LOT-1405-998",
-        "receiver": "حمید حسینی (انباردار)",
-        "notes": "ورود پارت دوم سفارش خرید PR-1405-1030",
-        "timestamp": "1405/03/01 10:15"
-    },
-    {
-        "id": "tx-2",
-        "part_id": "part-103",
-        "part_name": "شیر برقی کنترل جهت هیدرولیک Rexroth 4WE6",
-        "type": "STOCK_OUT",
-        "quantity": 2.0,
-        "batch": "LOT-1405-870",
-        "receiver": "مهندس محمد رضایی (تعمیرات خط ۲)",
-        "notes": "جهت اورهال پرس هیدرولیک ۲۰۰ تن",
-        "timestamp": "1405/03/04 14:30"
-    }
-]
+MOCK_STOCK_TRANSACTIONS: list[dict[str, Any]] = []
 
 
 class InvenTreeAdapter:

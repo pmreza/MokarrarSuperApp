@@ -17,69 +17,8 @@ from app.adapters.n8n_adapter import n8n_adapter
 router = APIRouter(prefix="/procurement", tags=["Procurement & Approvals (Phase 2)"])
 
 
-# In-memory realistic initial requests for instant demo/testability
-MOCK_PRS: list[dict[str, Any]] = [
-    {
-        "id": "pr-101",
-        "request_number": "PR-1405-1042",
-        "title": "خرید ۱۰ عدد بلبرینگ دور بالا و تسمه‌های صنعتی خط ۳",
-        "department": "نگهداری و تعمیرات",
-        "requester_name": "مهندس محمد رضایی",
-        "status": "APPROVED",
-        "priority": "high",
-        "total_estimated_cost": 48500000.0,
-        "justification": "تعمیر اضطراری و پیشگیرانه خط تولید اصلی کارخانه جهت جلوگیری از توقف تولید.",
-        "created_at": "1405/03/02 11:20",
-        "manager_note": "تایید گردید. لطفا پس از پرداخت، تحویل انبار مرکزی شود.",
-        "items": [
-            {
-                "item_name": "بلبرینگ شیار عمیق SKF 6205",
-                "quantity": 10.0,
-                "unit": "عدد",
-                "estimated_unit_price": 2850000.0,
-                "part_number": "MOK-BRG-6205",
-            },
-            {
-                "item_name": "تسمه تایمینگ صنعتی HTD 8M",
-                "quantity": 4.0,
-                "unit": "حلقه",
-                "estimated_unit_price": 5000000.0,
-                "part_number": "MOK-BLT-8M1200",
-            },
-        ],
-        "approvals": [
-            {
-                "approver_name": "مدیر فنی مهندسی",
-                "action": "APPROVE",
-                "comment": "با توجه به اهمیت تداوم تولید خط ۳ تایید شد.",
-                "timestamp": "1405/03/03 09:15",
-            }
-        ],
-    },
-    {
-        "id": "pr-102",
-        "request_number": "PR-1405-1043",
-        "title": "تامین تجهیزات آزمایشگاه کوانتومتری و مواد شیمیایی تیتراسیون",
-        "department": "کنترل کیفیت",
-        "requester_name": "سارا کریمی",
-        "status": "PENDING_APPROVAL",
-        "priority": "medium",
-        "total_estimated_cost": 22000000.0,
-        "justification": "انجام آزمایش‌های آنالیز عنصری شمش‌های ورودی آلیاژ آلومینیوم.",
-        "created_at": "1405/03/08 14:40",
-        "manager_note": None,
-        "items": [
-            {
-                "item_name": "محلول استاندارد کالیبراسیون کوانتومتر",
-                "quantity": 2.0,
-                "unit": "پک",
-                "estimated_unit_price": 11000000.0,
-                "part_number": "LAB-CAL-02",
-            }
-        ],
-        "approvals": [],
-    },
-]
+# In-memory purchase requests store (initially empty; populated solely by user submissions)
+MOCK_PRS: list[dict[str, Any]] = []
 
 
 class ItemCreate(BaseModel):

@@ -239,25 +239,9 @@ export const ReportsView: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-zinc-200 font-mono text-[11px]">
                     <tr>
-                      <td className="p-2 border border-zinc-200 text-center font-sans">۱</td>
-                      <td className="p-2 border border-zinc-200 font-sans font-bold">روغن هیدرولیک صنعتی HLP 46</td>
-                      <td className="p-2 border border-zinc-200">۸ بشکه ۲۰۸ لیتری</td>
-                      <td className="p-2 border border-zinc-200 font-sans">نگهداری خط ۱</td>
-                      <td className="p-2 border border-zinc-200 text-rose-600 font-bold font-sans">کسری (نقطه سفارش)</td>
-                    </tr>
-                    <tr>
-                      <td className="p-2 border border-zinc-200 text-center font-sans">۲</td>
-                      <td className="p-2 border border-zinc-200 font-sans font-bold">بلبرینگ تماس زاویه‌ای SKF 7210</td>
-                      <td className="p-2 border border-zinc-200">۱۲ عدد</td>
-                      <td className="p-2 border border-zinc-200 font-sans">اکستروژن B</td>
-                      <td className="p-2 border border-zinc-200 text-emerald-600 font-bold font-sans">موجود در انبار</td>
-                    </tr>
-                    <tr>
-                      <td className="p-2 border border-zinc-200 text-center font-sans">۳</td>
-                      <td className="p-2 border border-zinc-200 font-sans font-bold">ترموکوپل سنسور حرارتی تیپ K</td>
-                      <td className="p-2 border border-zinc-200">۲۰ شاخه</td>
-                      <td className="p-2 border border-zinc-200 font-sans">ابزار دقیق</td>
-                      <td className="p-2 border border-zinc-200 text-amber-600 font-bold font-sans">در حال استعلام</td>
+                      <td colSpan={5} className="p-6 text-center text-zinc-400 font-sans">
+                        موردی برای نمایش وجود ندارد. با ثبت درخواست‌های واقعی در سامانه، اقلام در این بخش درج می‌گردند.
+                      </td>
                     </tr>
                   </tbody>
                 </table>

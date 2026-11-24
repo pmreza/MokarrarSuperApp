@@ -29,7 +29,7 @@ export const InventoryView: React.FC = () => {
   const [selectedPartId, setSelectedPartId] = useState("")
   const [quantity, setQuantity] = useState(10)
   const [notes, setNotes] = useState("")
-  const [receiver, setReceiver] = useState("حمید حسینی (انباردار)")
+  const [receiver, setReceiver] = useState("")
 
   const loadData = async () => {
     try {

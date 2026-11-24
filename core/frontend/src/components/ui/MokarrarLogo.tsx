@@ -22,17 +22,19 @@ export const MokarrarLogo: React.FC<MokarrarLogoProps> = ({
     lg: "text-2xl tracking-tight",
   }
   const badgeSizes = {
-    sm: "w-7 h-7 text-xs rounded-lg",
-    md: "w-8 h-8 text-sm rounded-lg",
-    lg: "w-10 h-10 text-base rounded-xl",
+    sm: "w-8 h-8 rounded-lg",
+    md: "w-10 h-10 rounded-xl",
+    lg: "w-14 h-14 rounded-2xl",
   }
 
   return (
     <div className={`inline-flex items-center gap-3 ${className}`}>
-      {/* Icon Badge */}
-      <div className={`${badgeSizes[size]} bg-orange-500 flex items-center justify-center text-white font-black shadow-md shadow-orange-500/25 shrink-0`}>
-        م
-      </div>
+      {/* Official RR Emblem Badge */}
+      <img
+        src="/assets/images/logo-rr.png"
+        alt="لوگوی مکرر"
+        className={`${badgeSizes[size]} object-contain shadow-md shrink-0 bg-white/5 border border-zinc-200/20`}
+      />
 
       <div className="flex flex-col">
         {/* Exact Typography matching official logo: MOKA - RR - AR */}

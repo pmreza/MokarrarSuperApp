@@ -43,6 +43,18 @@ def init_db(session: Session) -> None:
         session.rollback()
 
     try:
+        session.exec(text("ALTER TABLE \"user\" ADD COLUMN IF NOT EXISTS phone_number VARCHAR(50)"))
+        session.commit()
+    except Exception:
+        session.rollback()
+
+    try:
+        session.exec(text("ALTER TABLE \"user\" ADD COLUMN IF NOT EXISTS bale_chat_id VARCHAR(50)"))
+        session.commit()
+    except Exception:
+        session.rollback()
+
+    try:
         session.exec(text("ALTER TABLE task_records ADD COLUMN IF NOT EXISTS location VARCHAR(100) DEFAULT 'central_office'"))
         session.commit()
     except Exception:

@@ -10,6 +10,7 @@ from starlette.middleware.cors import CORSMiddleware
 from app.api.main import api_router
 from app.core.config import settings
 from app.core.db import engine, init_db
+from app.core.keep_alive import start_keep_alive, stop_keep_alive
 
 FRONTEND_DIR = Path(__file__).parent / "frontend"
 
@@ -26,7 +27,11 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         import logging
         logging.exception(f"Error during init_db in lifespan: {e}")
+    
+    # Start background keep-alive ping worker to prevent Render idle spin-down
+    start_keep_alive()
     yield
+    stop_keep_alive()
 
 
 if settings.SENTRY_DSN and settings.FASTAPI_ENV != "development":

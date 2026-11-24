@@ -90,6 +90,7 @@ export function AdminUserManagement() {
   // Add Form State
   const [addUsername, setAddUsername] = useState("")
   const [addFullName, setAddFullName] = useState("")
+  const [addPhoneNumber, setAddPhoneNumber] = useState("")
   const [addPassword, setAddPassword] = useState("")
   const [addRole, setAddRole] = useState("staff")
   const [addLocation, setAddLocation] = useState("central_office")
@@ -97,6 +98,7 @@ export function AdminUserManagement() {
 
   // Edit Form State
   const [editFullName, setEditFullName] = useState("")
+  const [editPhoneNumber, setEditPhoneNumber] = useState("")
   const [editRole, setEditRole] = useState("staff")
   const [editLocation, setEditLocation] = useState("central_office")
   const [editPermissions, setEditPermissions] = useState<string[]>([])
@@ -180,6 +182,7 @@ export function AdminUserManagement() {
   const openEditModal = (u: any) => {
     setSelectedUser(u)
     setEditFullName(u.full_name || "")
+    setEditPhoneNumber(u.phone_number || "")
     setEditRole(u.role || "staff")
     setEditLocation(u.location || "central_office")
     setEditPermissions(u.permissions_list || [])
@@ -201,6 +204,7 @@ export function AdminUserManagement() {
       await api.users.create({
         email: addUsername.trim(),
         full_name: addFullName.trim() || undefined,
+        phone_number: addPhoneNumber.trim() || undefined,
         password: addPassword.trim(),
         role: addRole,
         location: addLocation,
@@ -211,6 +215,7 @@ export function AdminUserManagement() {
       setIsAddOpen(false)
       setAddUsername("")
       setAddFullName("")
+      setAddPhoneNumber("")
       setAddPassword("")
       setAddRole("staff")
       setAddLocation("central_office")
@@ -232,6 +237,7 @@ export function AdminUserManagement() {
       setSubmitting(true)
       const payload: Record<string, any> = {
         full_name: editFullName.trim(),
+        phone_number: editPhoneNumber.trim() || undefined,
         role: editRole,
         location: editLocation,
         permissions: JSON.stringify(editPermissions),
@@ -420,7 +426,23 @@ export function AdminUserManagement() {
                       </td>
 
                       <td className="py-3.5 px-4 font-mono text-zinc-600 font-semibold">
-                        {u.email}
+                        <div className="text-zinc-800">{u.email}</div>
+                        {u.phone_number ? (
+                          <div className="text-[10px] text-zinc-500 font-normal flex items-center gap-1.5 mt-0.5">
+                            <span className="font-mono">{u.phone_number}</span>
+                            {u.bale_chat_id ? (
+                              <span className="text-[9px] font-sans font-bold px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                بازوی بله فعال
+                              </span>
+                            ) : (
+                              <span className="text-[9px] font-sans px-1 rounded bg-zinc-100 text-zinc-400">
+                                در انتظار ورود
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-[10px] text-zinc-400 font-sans italic">فاقد شماره موبایل</div>
+                        )}
                       </td>
 
                       <td className="py-3.5 px-4">
@@ -551,18 +573,34 @@ export function AdminUserManagement() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-semibold text-zinc-700 block mb-1">
+                شماره همراه سازمانی (جهت ورود به بازوی بله)
+              </label>
+              <input
+                type="tel"
+                placeholder="0912xxxxxxx"
+                value={addPhoneNumber}
+                onChange={(e) => setAddPhoneNumber(e.target.value)}
+                className="w-full h-9 px-3 text-xs bg-zinc-50 border border-zinc-200 rounded-lg text-left font-mono"
+                dir="ltr"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-zinc-700 block mb-1">
                 رمز عبور اولیه <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
                 required
-                placeholder="حداقل ۶ کاراکتر (کاربر می‌تواند در پنل خود تغییر دهد)"
+                placeholder="حداقل ۶ کاراکتر"
                 value={addPassword}
                 onChange={(e) => setAddPassword(e.target.value)}
                 className="w-full h-9 px-3 text-xs bg-zinc-50 border border-zinc-200 rounded-lg text-right font-mono"
               />
             </div>
+          </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-semibold text-zinc-700 block mb-1">
                 گام ۱: محل خدمت سازمانی <span className="text-rose-500">*</span>
@@ -577,23 +615,23 @@ export function AdminUserManagement() {
                 <option value="qazvin_plant">کارخانه قزوین</option>
               </select>
             </div>
-          </div>
 
-          <div>
-            <label className="text-xs font-semibold text-zinc-700 block mb-1">
-              گام ۲: سمت و نقش سازمانی در این محل <span className="text-rose-500">*</span>
-            </label>
-            <select
-              value={addRole}
-              onChange={(e) => handleRoleChangeForAdd(e.target.value)}
-              className="w-full h-9 px-2 text-xs bg-zinc-50 border border-zinc-200 rounded-lg text-right font-bold text-zinc-800"
-            >
-              {(LOCATION_ROLE_OPTIONS[addLocation] || []).map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.title}
-                </option>
-              ))}
-            </select>
+            <div>
+              <label className="text-xs font-semibold text-zinc-700 block mb-1">
+                گام ۲: سمت و نقش سازمانی در این محل <span className="text-rose-500">*</span>
+              </label>
+              <select
+                value={addRole}
+                onChange={(e) => handleRoleChangeForAdd(e.target.value)}
+                className="w-full h-9 px-2 text-xs bg-zinc-50 border border-zinc-200 rounded-lg text-right font-bold text-zinc-800"
+              >
+                {(LOCATION_ROLE_OPTIONS[addLocation] || []).map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.title}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {/* Granular Permissions Checkboxes */}
@@ -687,6 +725,22 @@ export function AdminUserManagement() {
 
             <div>
               <label className="text-xs font-semibold text-zinc-700 block mb-1">
+                شماره همراه سازمانی (جهت ورود به بازوی بله)
+              </label>
+              <input
+                type="tel"
+                placeholder="0912xxxxxxx"
+                value={editPhoneNumber}
+                onChange={(e) => setEditPhoneNumber(e.target.value)}
+                className="w-full h-9 px-3 text-xs bg-zinc-50 border border-zinc-200 rounded-lg text-left font-mono"
+                dir="ltr"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold text-zinc-700 block mb-1">
                 گام ۱: محل خدمت سازمانی
               </label>
               <select
@@ -699,23 +753,23 @@ export function AdminUserManagement() {
                 <option value="qazvin_plant">کارخانه قزوین</option>
               </select>
             </div>
-          </div>
 
-          <div>
-            <label className="text-xs font-semibold text-zinc-700 block mb-1">
-              گام ۲: سمت و نقش سازمانی در این محل
-            </label>
-            <select
-              value={editRole}
-              onChange={(e) => handleRoleChangeForEdit(e.target.value)}
-              className="w-full h-9 px-2 text-xs bg-zinc-50 border border-zinc-200 rounded-lg text-right font-bold text-zinc-800"
-            >
-              {(LOCATION_ROLE_OPTIONS[editLocation] || []).map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.title}
-                </option>
-              ))}
-            </select>
+            <div>
+              <label className="text-xs font-semibold text-zinc-700 block mb-1">
+                گام ۲: سمت و نقش سازمانی در این محل
+              </label>
+              <select
+                value={editRole}
+                onChange={(e) => handleRoleChangeForEdit(e.target.value)}
+                className="w-full h-9 px-2 text-xs bg-zinc-50 border border-zinc-200 rounded-lg text-right font-bold text-zinc-800"
+              >
+                {(LOCATION_ROLE_OPTIONS[editLocation] || []).map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.title}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

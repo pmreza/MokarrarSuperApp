@@ -196,6 +196,8 @@ export const api = {
     create: async (data: {
       email: string
       full_name?: string
+      phone_number?: string
+      bale_chat_id?: string
       password: string
       role?: string
       location?: string

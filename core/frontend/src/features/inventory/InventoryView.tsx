@@ -10,6 +10,9 @@ import {
   Layers,
   History,
   FileSpreadsheet,
+  FileJson,
+  Upload,
+  Copy,
 } from "lucide-react"
 import { DataTable, type Column } from "@/components/ui/DataTable"
 import { StatusBadge } from "@/components/ui/StatusBadge"
@@ -26,7 +29,37 @@ export const InventoryView: React.FC = () => {
   // Modals
   const [isStockInOpen, setIsStockInOpen] = useState(false)
   const [isStockOutOpen, setIsStockOutOpen] = useState(false)
+  const [isImportOpen, setIsImportOpen] = useState(false)
+  const [importJsonText, setImportJsonText] = useState("")
+  const [importing, setImporting] = useState(false)
   const [selectedPartId, setSelectedPartId] = useState("")
+
+  const SUGGESTED_JSON_TEMPLATE = JSON.stringify(
+    {
+      items: [
+        {
+          IPN: "MOK-BRG-6205",
+          name: "بلبرینگ شیار عمیق SKF 6205",
+          category_name: "قطعات مکانیکی",
+          total_in_stock: 24,
+          minimum_stock: 6,
+          unit: "عدد",
+          location: "انبار ماهشهر - قفسه B2",
+        },
+        {
+          IPN: "MOK-OIL-46",
+          name: "روغن هیدرولیک صنعتی ISO 46",
+          category_name: "روان‌کارها",
+          total_in_stock: 180,
+          minimum_stock: 40,
+          unit: "لیتر",
+          location: "انبار قزوین - مخزن ۱",
+        },
+      ],
+    },
+    null,
+    2
+  )
   const [quantity, setQuantity] = useState(10)
   const [notes, setNotes] = useState("")
   const [receiver, setReceiver] = useState("")
@@ -89,6 +122,45 @@ export const InventoryView: React.FC = () => {
     } catch (err) {
       toast.error("خطا در ثبت خروج کالا")
     }
+  }
+
+  const handleCopyTemplate = () => {
+    navigator.clipboard.writeText(SUGGESTED_JSON_TEMPLATE)
+    toast.success("الگوی پیشنهادی JSON در حافظه کپی شد.")
+  }
+
+  const handleImportJson = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      setImporting(true)
+      const parsed = JSON.parse(importJsonText || SUGGESTED_JSON_TEMPLATE)
+      const items = Array.isArray(parsed) ? parsed : parsed.items
+      if (!Array.isArray(items) || items.length === 0) {
+        toast.error("فرمت JSON باید شامل آرایه‌ای از اقلام یا کلید items باشد.")
+        return
+      }
+      const res = await api.inventory.importParts(items)
+      toast.success(
+        `ایمپورت با موفقیت انجام شد: ${res.imported_count} قلم جدید، ${res.updated_count} قلم بروزرسانی.`
+      )
+      setIsImportOpen(false)
+      setImportJsonText("")
+      loadData()
+    } catch (err: any) {
+      toast.error(err instanceof SyntaxError ? "ساختار JSON واردشده معتبر نیست." : "خطا در ایمپورت اطلاعات انبار")
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  const handleJsonFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      setImportJsonText(String(ev.target?.result || ""))
+    }
+    reader.readAsText(file)
   }
 
   const partColumns: Column<any>[] = [
@@ -237,6 +309,17 @@ export const InventoryView: React.FC = () => {
             title="بروزرسانی داده‌ها"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-orange-600" : ""}`} />
+          </button>
+
+          <button
+            onClick={() => {
+              if (!importJsonText) setImportJsonText(SUGGESTED_JSON_TEMPLATE)
+              setIsImportOpen(true)
+            }}
+            className="h-9 px-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border border-zinc-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+          >
+            <FileJson className="w-4 h-4 text-orange-600" />
+            <span>ایمپورت و راهنمای JSON</span>
           </button>
 
           <button
@@ -422,6 +505,67 @@ export const InventoryView: React.FC = () => {
               className="px-5 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-lg shadow-sm cursor-pointer"
             >
               ثبت خروج قطعه
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* JSON IMPORT & DOCUMENTATION MODAL */}
+      <Modal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        title="مستندات و ایمپورت گروهی انبار (JSON)"
+        maxWidth="lg"
+      >
+        <form onSubmit={handleImportJson} className="space-y-4 text-right" dir="rtl">
+          <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200 text-xs text-blue-900 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-bold">راهنمای ساختار پیشنهادی JSON برای آپدیت و ورود کالا:</span>
+              <button
+                type="button"
+                onClick={handleCopyTemplate}
+                className="px-2.5 py-1 rounded-lg bg-white border border-blue-200 text-blue-700 hover:bg-blue-100 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>کپی الگو</span>
+              </button>
+            </div>
+            <p className="text-[11px] text-blue-800 leading-relaxed">
+              هر قلم بر اساس کد یکتای <code className="font-mono font-bold">IPN</code> بررسی می‌شود؛ اگر کد قبلاً موجود باشد موجودی آن بروزرسانی و در غیر این صورت به‌عنوان کالای جدید ثبت می‌گردد.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <label className="text-xs font-bold text-slate-700">محتوای JSON یا انتخاب فایل:</label>
+            <label className="px-3 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-xs font-semibold text-zinc-700 flex items-center gap-1.5 cursor-pointer">
+              <Upload className="w-3.5 h-3.5 text-orange-600" />
+              <span>انتخاب فایل JSON.</span>
+              <input type="file" accept=".json,application/json" onChange={handleJsonFileUpload} className="hidden" />
+            </label>
+          </div>
+
+          <textarea
+            rows={10}
+            dir="ltr"
+            value={importJsonText}
+            onChange={(e) => setImportJsonText(e.target.value)}
+            className="w-full p-3 text-xs font-mono bg-zinc-950 text-emerald-300 border border-zinc-800 rounded-xl focus:outline-hidden"
+          />
+
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setIsImportOpen(false)}
+              className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+            >
+              انصراف
+            </button>
+            <button
+              type="submit"
+              disabled={importing}
+              className="px-5 py-2 text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-sm cursor-pointer"
+            >
+              {importing ? "در حال ایمپورت..." : "ایمپورت و بروزرسانی انبار"}
             </button>
           </div>
         </form>

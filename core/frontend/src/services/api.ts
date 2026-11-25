@@ -192,6 +192,14 @@ export const api = {
       const res = await apiClient.get("/inventory/stats/kpi")
       return res.data
     },
+    getImportTemplate: async () => {
+      const res = await apiClient.get("/inventory/import-template")
+      return res.data
+    },
+    importParts: async (items: Array<Record<string, any>>) => {
+      const res = await apiClient.post("/inventory/import", { items })
+      return res.data
+    },
   },
 
   // Dashboard Executive KPIs

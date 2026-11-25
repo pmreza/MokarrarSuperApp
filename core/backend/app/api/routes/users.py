@@ -84,6 +84,7 @@ def get_roles_metadata(current_user: CurrentUser) -> dict[str, Any]:
         {"id": "inventory:stock_out", "name": "ثبت خروج و تحویل کالا", "category": "انبارداری"},
         {"id": "reports:view", "name": "مشاهده داشبورد و آمار", "category": "گزارشات"},
         {"id": "reports:export", "name": "خروجی اکسل و ورد اسناد", "category": "گزارشات"},
+        {"id": "dashboard:view", "name": "مشاهده داشبورد مدیریتی (صفحه اصلی)", "category": "مدیریت سیستم"},
         {"id": "users:manage", "name": "مدیریت کامل کاربران و نقش‌ها", "category": "مدیریت سیستم"},
     ]
 

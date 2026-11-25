@@ -141,5 +141,61 @@ class InvenTreeAdapter:
     async def get_transactions(self) -> list[dict[str, Any]]:
         return list(MOCK_STOCK_TRANSACTIONS)
 
+    async def import_parts(self, items: list[dict[str, Any]]) -> dict[str, Any]:
+        """Bulk import or update inventory parts by IPN or name."""
+        created_count = 0
+        updated_count = 0
+
+        for item in items:
+            ipn = str(item.get("IPN") or "").strip()
+            name = str(item.get("name") or "").strip()
+            if not name and not ipn:
+                continue
+
+            existing = None
+            for p in MOCK_PARTS:
+                if (ipn and p.get("IPN") == ipn) or (name and p.get("name") == name):
+                    existing = p
+                    break
+
+            stock_val = float(item.get("total_in_stock", item.get("stock", 0)) or 0)
+            min_stock_val = float(item.get("minimum_stock", item.get("min_stock", 5)) or 5)
+
+            if existing:
+                if name:
+                    existing["name"] = name
+                if item.get("category_name"):
+                    existing["category_name"] = str(item["category_name"])
+                if item.get("unit"):
+                    existing["unit"] = str(item["unit"])
+                if item.get("location"):
+                    existing["location"] = str(item["location"])
+                existing["total_in_stock"] = stock_val
+                existing["minimum_stock"] = min_stock_val
+                existing["stock"] = stock_val
+                existing["min_stock"] = min_stock_val
+                updated_count += 1
+            else:
+                new_id = f"part-{uuid.uuid4().hex[:6]}"
+                MOCK_PARTS.append({
+                    "id": new_id,
+                    "IPN": ipn or new_id.upper(),
+                    "name": name or ipn,
+                    "category_name": str(item.get("category_name") or "قطعات عمومی"),
+                    "total_in_stock": stock_val,
+                    "minimum_stock": min_stock_val,
+                    "stock": stock_val,
+                    "min_stock": min_stock_val,
+                    "unit": str(item.get("unit") or "عدد"),
+                    "location": str(item.get("location") or "انبار مرکزی"),
+                })
+                created_count += 1
+
+        return {
+            "imported_count": created_count,
+            "updated_count": updated_count,
+            "total_parts": len(MOCK_PARTS),
+        }
+
 
 inventree_adapter = InvenTreeAdapter()

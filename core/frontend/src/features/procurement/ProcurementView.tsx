@@ -136,6 +136,7 @@ export const ProcurementView: React.FC = () => {
   const totalRequestsCount = requests.length
   const pendingRequests = requests.filter((r) => r.status === "PENDING_APPROVAL")
   const approvedRequests = requests.filter((r) => r.status === "APPROVED" || r.status === "PAID" || r.status === "DELIVERED")
+  const paidRequests = requests.filter((r) => r.status === "PAID" || r.status === "DELIVERED")
   const totalAmount = requests.reduce((acc, r) => acc + (r.total_estimated_cost || 0), 0)
 
   const activeReview = selectedReq || (requests.length > 0 ? requests[0] : null)
@@ -280,7 +281,7 @@ export const ProcurementView: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. Top KPI Telemetry Strip (4 Cards) */}
+      {/* 2. Top KPI Telemetry Strip (4 Cards - 100% Real Data) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-slide-up" style={{ animationDelay: "60ms" }}>
         {/* Card 1 */}
         <div className="bg-white rounded-2xl border border-zinc-200/90 p-5 shadow-xs overflow-hidden flex flex-col justify-between relative">
@@ -290,13 +291,16 @@ export const ProcurementView: React.FC = () => {
             <Clock className="w-4 h-4 text-orange-600" />
           </div>
           <div className="my-3 flex items-baseline justify-between">
-            <span className="text-3xl font-black text-zinc-900 tracking-tight font-mono">{pendingRequests.length || 1}</span>
+            <span className="text-3xl font-black text-zinc-900 tracking-tight font-mono">{pendingRequests.length}</span>
             <span className="px-2 py-0.5 rounded-full font-bold text-[10px] bg-orange-50 text-orange-700 border border-orange-200">
-              نیازمند اقدام مدیر
+              {pendingRequests.length > 0 ? "نیازمند اقدام مدیر" : "بدون صف انتظار"}
             </span>
           </div>
           <div className="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden">
-            <div className="bg-orange-500 h-full rounded-full" style={{ width: "68%" }} />
+            <div
+              className="bg-orange-500 h-full rounded-full transition-all"
+              style={{ width: `${requests.length > 0 ? Math.round((pendingRequests.length / requests.length) * 100) : 0}%` }}
+            />
           </div>
         </div>
 
@@ -304,17 +308,20 @@ export const ProcurementView: React.FC = () => {
         <div className="bg-white rounded-2xl border border-zinc-200/90 p-5 shadow-xs overflow-hidden flex flex-col justify-between relative">
           <div className="absolute top-0 right-0 left-0 h-1 bg-emerald-500" />
           <div className="flex items-center justify-between">
-            <span className="text-[11px] text-zinc-400 font-semibold">مصوبات تأیید شده (ماه جاری)</span>
+            <span className="text-[11px] text-zinc-400 font-semibold">مصوبات تأیید شده</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
           </div>
           <div className="my-3 flex items-baseline justify-between">
-            <span className="text-3xl font-black text-zinc-900 tracking-tight font-mono">{approvedRequests.length || 3}</span>
+            <span className="text-3xl font-black text-zinc-900 tracking-tight font-mono">{approvedRequests.length}</span>
             <span className="px-2 py-0.5 rounded-full font-bold text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200">
-              +۱۲٪ تسویه سریع
+              {requests.length > 0 ? `${Math.round((approvedRequests.length / requests.length) * 100)}٪ کل پرونده‌ها` : "داده ثبت‌نشده"}
             </span>
           </div>
           <div className="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden">
-            <div className="bg-emerald-500 h-full rounded-full" style={{ width: "82%" }} />
+            <div
+              className="bg-emerald-500 h-full rounded-full transition-all"
+              style={{ width: `${requests.length > 0 ? Math.round((approvedRequests.length / requests.length) * 100) : 0}%` }}
+            />
           </div>
         </div>
 
@@ -328,14 +335,19 @@ export const ProcurementView: React.FC = () => {
           <div className="my-3">
             <div className="flex items-baseline gap-1">
               <span className="text-xl sm:text-2xl font-black text-zinc-900 tracking-tight font-mono">
-                {(totalAmount || 4620000000).toLocaleString()}
+                {totalAmount.toLocaleString()}
               </span>
               <span className="text-xs text-zinc-400">ریال</span>
             </div>
-            <span className="text-[10px] text-zinc-400 block mt-0.5">سقف مصوب دوره: ۵.۵ میلیارد ریال</span>
+            <span className="text-[10px] text-zinc-400 block mt-0.5">
+              مجموع واقعی {requests.length} درخواست ثبت‌شده
+            </span>
           </div>
           <div className="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden">
-            <div className="bg-[#062434] h-full rounded-full" style={{ width: "84%" }} />
+            <div
+              className="bg-[#062434] h-full rounded-full transition-all"
+              style={{ width: `${totalAmount > 0 ? 100 : 0}%` }}
+            />
           </div>
         </div>
 
@@ -343,20 +355,23 @@ export const ProcurementView: React.FC = () => {
         <div className="bg-white rounded-2xl border border-zinc-200/90 p-5 shadow-xs overflow-hidden flex flex-col justify-between relative">
           <div className="absolute top-0 right-0 left-0 h-1 bg-[#006857]" />
           <div className="flex items-center justify-between">
-            <span className="text-[11px] text-zinc-400 font-semibold">میانگین چرخه گردش مصوبه</span>
+            <span className="text-[11px] text-zinc-400 font-semibold">پرونده‌های تسویه / پرداخت‌شده</span>
             <TrendingUp className="w-4 h-4 text-[#006857]" />
           </div>
           <div className="my-3 flex items-baseline justify-between">
             <div className="flex items-baseline gap-1">
-              <span className="text-3xl font-black text-zinc-900 tracking-tight font-mono">۶.۴</span>
-              <span className="text-xs text-zinc-500">ساعت</span>
+              <span className="text-3xl font-black text-zinc-900 tracking-tight font-mono">{paidRequests.length}</span>
+              <span className="text-xs text-zinc-500">پرونده</span>
             </div>
             <span className="px-2 py-0.5 rounded-full font-bold text-[10px] bg-emerald-50 text-[#006857]">
-              هدف: زیر ۸ ساعت
+              {requests.length > 0 ? "ثبت واقعی سیستم" : "بدون تراکنش"}
             </span>
           </div>
           <div className="w-full bg-zinc-100 h-1.5 rounded-full overflow-hidden">
-            <div className="bg-[#006857] h-full rounded-full" style={{ width: "90%" }} />
+            <div
+              className="bg-[#006857] h-full rounded-full transition-all"
+              style={{ width: `${requests.length > 0 ? Math.round((paidRequests.length / requests.length) * 100) : 0}%` }}
+            />
           </div>
         </div>
       </div>
@@ -602,16 +617,16 @@ export const ProcurementView: React.FC = () => {
               </button>
             </div>
 
-            <div className="space-y-2 max-h-48 overflow-y-auto">
+            <div className="space-y-2 max-h-56 overflow-y-auto">
               {items.map((it, idx) => (
-                <div key={idx} className="flex items-center gap-2 p-2.5 bg-zinc-50 rounded-xl border border-zinc-200/70 text-xs">
+                <div key={idx} className="grid grid-cols-2 sm:flex sm:items-center gap-2 p-2.5 bg-zinc-50 rounded-xl border border-zinc-200/70 text-xs">
                   <input
                     type="text"
                     required
                     placeholder="نام کالا / قطعه"
                     value={it.item_name}
                     onChange={(e) => updateItemRow(idx, "item_name", e.target.value)}
-                    className="flex-2 px-2 py-1 bg-white border border-zinc-200 rounded-lg"
+                    className="col-span-2 sm:flex-2 px-2 py-1.5 bg-white border border-zinc-200 rounded-lg"
                   />
                   <input
                     type="number"
@@ -619,21 +634,21 @@ export const ProcurementView: React.FC = () => {
                     placeholder="تعداد"
                     value={it.quantity}
                     onChange={(e) => updateItemRow(idx, "quantity", Number(e.target.value))}
-                    className="w-16 px-2 py-1 bg-white border border-zinc-200 rounded-lg font-mono"
+                    className="w-full sm:w-16 px-2 py-1.5 bg-white border border-zinc-200 rounded-lg font-mono"
                   />
                   <input
                     type="text"
                     placeholder="واحد"
                     value={it.unit}
                     onChange={(e) => updateItemRow(idx, "unit", e.target.value)}
-                    className="w-16 px-2 py-1 bg-white border border-zinc-200 rounded-lg"
+                    className="w-full sm:w-16 px-2 py-1.5 bg-white border border-zinc-200 rounded-lg"
                   />
                   <input
                     type="number"
                     placeholder="قیمت برآوردی (ریال)"
                     value={it.estimated_unit_price}
                     onChange={(e) => updateItemRow(idx, "estimated_unit_price", Number(e.target.value))}
-                    className="w-28 px-2 py-1 bg-white border border-zinc-200 rounded-lg font-mono"
+                    className="col-span-2 sm:w-28 px-2 py-1.5 bg-white border border-zinc-200 rounded-lg font-mono"
                   />
                   {items.length > 1 && (
                     <button

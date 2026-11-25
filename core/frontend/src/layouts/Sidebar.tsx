@@ -121,17 +121,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => 
         })}
       </nav>
 
-      {/* User Session & Role Card + Stitch Telemetry */}
-      <div className="p-3 border-t border-zinc-800/80 bg-zinc-950/60 shrink-0 space-y-2">
-        {/* Stitch Telemetry Recovery Pill */}
-        <div className="px-3 py-2 bg-zinc-900/90 rounded-xl border border-zinc-800 flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-zinc-300 text-[10px]">
-            <Gauge className="w-3.5 h-3.5 text-emerald-400" />
-            <span>نرخ بازیابی پلیمری</span>
-          </div>
-          <span className="text-emerald-400 font-mono font-bold text-xs">۹۴.۲٪</span>
-        </div>
-
+      {/* User Session & Role Card */}
+      <div className="p-3 border-t border-zinc-800/80 bg-zinc-950/60 shrink-0">
         <div className="p-2.5 bg-zinc-900/80 rounded-xl border border-zinc-800 space-y-1.5">
           <div className="flex items-center justify-between text-xs">
             <span className="text-zinc-200 font-bold truncate max-w-[130px]" title={user?.full_name || user?.email || ""}>
@@ -142,17 +133,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => 
             </span>
           </div>
 
-          <div className="text-[11px] text-zinc-400 space-y-0.5">
+          <div className="text-[11px] text-zinc-400">
             <div className="flex justify-between items-center">
               <span>شناسه کاربر:</span>
               <span className="text-zinc-300 font-mono text-[10px] truncate max-w-[110px]">{user?.email || "—"}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span>وضعیت اسکادا:</span>
-              <span className="text-emerald-400 font-bold flex items-center gap-1 text-[10px]">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                متصل (برخط)
-              </span>
             </div>
           </div>
         </div>

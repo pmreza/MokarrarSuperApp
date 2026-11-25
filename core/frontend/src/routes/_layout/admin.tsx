@@ -45,6 +45,7 @@ export const LOCATION_ROLE_OPTIONS: Record<string, { id: string; title: string }
 import { api } from "@/services/api"
 import { toast } from "sonner"
 import { Modal } from "@/components/ui/Modal"
+import { RoleAvatar } from "@/components/ui/RoleAvatar"
 import useAuth from "@/hooks/useAuth"
 
 export const Route = createFileRoute("/_layout/admin")({
@@ -423,9 +424,11 @@ export function AdminUserManagement() {
                     <tr key={u.id} className="hover:bg-zinc-50/60 transition-colors">
                       <td className="py-3.5 px-5">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-zinc-900 text-white flex items-center justify-center font-bold text-xs ring-2 ring-orange-500/20">
-                            {u.full_name ? u.full_name.trim().charAt(0) : u.email.charAt(0).toUpperCase()}
-                          </div>
+                          <RoleAvatar
+                            role={u.role || (u.is_superuser ? "admin" : "worker")}
+                            name={u.full_name || u.email}
+                            size="md"
+                          />
                           <div>
                             <span className="font-bold text-zinc-900 block">
                               {u.full_name || "بدون نام"}

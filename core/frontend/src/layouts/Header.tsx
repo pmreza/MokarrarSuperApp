@@ -3,6 +3,7 @@ import { useLocation, useNavigate, Link } from "@tanstack/react-router"
 import { Search, Bell, LogOut, ChevronLeft, Plus, Settings, Menu } from "lucide-react"
 import { NAVIGATION_CONFIG } from "@/config/navigation.config"
 import { CommandPalette } from "@/components/ui/CommandPalette"
+import { RoleAvatar } from "@/components/ui/RoleAvatar"
 import useAuth from "@/hooks/useAuth"
 
 interface HeaderProps {
@@ -134,28 +135,22 @@ export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
           <div className="flex items-center gap-2">
             <Link
               to="/settings"
-              className="flex items-center gap-2 hover:bg-zinc-50 p-1.5 rounded-lg transition-colors cursor-pointer group"
+              className="flex items-center gap-2.5 hover:bg-zinc-50 p-1.5 rounded-xl transition-colors cursor-pointer group"
               title="تنظیمات حساب کاربری"
             >
-              <div className="w-8 h-8 rounded-full bg-zinc-900 text-white flex items-center justify-center text-xs font-bold ring-2 ring-orange-500/30 group-hover:ring-orange-500">
-                {user?.full_name ? user.full_name.trim().charAt(0) : (user?.email?.charAt(0).toUpperCase() || "م")}
-              </div>
+              <RoleAvatar
+                role={(user as any)?.role || (user?.is_superuser ? "admin" : "worker")}
+                name={user?.full_name || user?.email || "کاربر مکرر"}
+                size="md"
+              />
               <div className="hidden sm:flex flex-col text-right">
                 <span className="text-xs font-semibold text-zinc-900 leading-tight">
                   {user?.full_name || user?.email || "کاربر مکرر"}
                 </span>
                 <span className="text-[10px] text-zinc-500 leading-tight">
-                  سطح دسترسی: {(user as any)?.role_title || (user as any)?.role || "کارمند"}
+                  {(user as any)?.role_title || (user as any)?.role || "کارمند"}
                 </span>
               </div>
-            </Link>
-
-            <Link
-              to="/settings"
-              className="p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition-colors cursor-pointer"
-              title="تنظیمات و تغییر رمز"
-            >
-              <Settings className="w-4 h-4" />
             </Link>
 
             <button

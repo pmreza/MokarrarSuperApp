@@ -82,18 +82,18 @@ LOCATION_ROLES: dict[str, list[dict[str, str]]] = {
 
 DEFAULT_ROLE_PERMISSIONS: dict[str, list[str]] = {
     UserRole.ADMIN.value: [
-        "tasks:view", "tasks:create", "tasks:update", "tasks:delete",
+        "tasks:view", "tasks:create", "tasks:update", "tasks:edit_settings", "tasks:delete",
         "procurement:view", "procurement:create", "procurement:approve", "procurement:pay",
         "inventory:view", "inventory:stock_in", "inventory:stock_out",
         "reports:view", "reports:export", "users:manage"
     ],
     UserRole.OFFICE_MANAGER.value: [
-        "tasks:view", "tasks:create", "tasks:update",
+        "tasks:view", "tasks:create", "tasks:update", "tasks:edit_settings",
         "procurement:view", "procurement:create", "procurement:approve",
         "reports:view", "reports:export"
     ],
     UserRole.MANAGING_DIRECTOR.value: [
-        "tasks:view", "tasks:create", "tasks:update",
+        "tasks:view", "tasks:create", "tasks:update", "tasks:edit_settings",
         "procurement:view", "procurement:create", "procurement:approve", "procurement:pay",
         "inventory:view", "reports:view", "reports:export"
     ],

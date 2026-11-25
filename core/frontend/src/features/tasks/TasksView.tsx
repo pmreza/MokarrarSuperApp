@@ -78,12 +78,30 @@ export const TasksView: React.FC = () => {
   const [extReason, setExtReason] = useState("")
   const [extSubmitting, setExtSubmitting] = useState(false)
 
+  const userPerms: string[] = (() => {
+    try {
+      const raw = (currentUser as any)?.permissions
+      if (Array.isArray(raw)) return raw
+      if (typeof raw === "string") return JSON.parse(raw)
+    } catch {}
+    return []
+  })()
+
   const canApproveExtensions = Boolean(
     currentUser?.is_superuser ||
-      ["admin", "ceo", "managing_director", "manager", "office_manager", "production_manager"].includes(
+      userPerms.includes("tasks:edit_settings") ||
+      ["admin", "ceo", "managing_director", "office_manager", "manager"].includes(
         (currentUser as any)?.role || ""
       )
   )
+
+  // Direct task settings editing state (only for authorized managers / tasks:edit_settings)
+  const [editSettingsOpen, setEditSettingsOpen] = useState(false)
+  const [editDueDate, setEditDueDate] = useState("")
+  const [editPriority, setEditPriority] = useState("medium")
+  const [editAssigneeId, setEditAssigneeId] = useState("")
+  const [editFollowerId, setEditFollowerId] = useState("")
+  const [editSaving, setEditSaving] = useState(false)
 
   const loadData = async () => {
     try {
@@ -269,6 +287,40 @@ export const TasksView: React.FC = () => {
       toast.error("خطا در بررسی درخواست تمدید")
     } finally {
       setExtSubmitting(false)
+    }
+  }
+
+  const openEditSettings = () => {
+    if (!selectedTask) return
+    setEditDueDate(selectedTask.due_date || "۱۴۰۵/۰۴/۰۱")
+    setEditPriority(selectedTask.priority || "medium")
+    setEditAssigneeId(selectedTask.assignee_id || "")
+    setEditFollowerId(selectedTask.follower_id || "")
+    setEditSettingsOpen((v) => !v)
+  }
+
+  const handleSaveTaskSettings = async () => {
+    if (!selectedTask) return
+    try {
+      setEditSaving(true)
+      const assignedUser = members.find((m) => String(m.id) === String(editAssigneeId))
+      const followerUser = members.find((m) => String(m.id) === String(editFollowerId))
+      const updated = await api.tasks.update(selectedTask.id, {
+        due_date: editDueDate,
+        priority: editPriority,
+        assignee_id: editAssigneeId || undefined,
+        assignee_name: assignedUser ? assignedUser.name : selectedTask.assignee_name,
+        follower_id: editFollowerId || "",
+        follower_name: followerUser ? followerUser.name : "",
+      })
+      setTasks((prev) => prev.map((t) => (t.id === selectedTask.id ? updated : t)))
+      setSelectedTask(updated)
+      setEditSettingsOpen(false)
+      toast.success("تنظیمات و مهلت تحویل تسک با موفقیت ویرایش شد.")
+    } catch (err) {
+      toast.error("خطا در ویرایش تنظیمات تسک")
+    } finally {
+      setEditSaving(false)
     }
   }
 
@@ -802,16 +854,92 @@ export const TasksView: React.FC = () => {
                   <Calendar className="w-4 h-4 text-orange-600" />
                   <span>مدیریت تمدید مهلت تحویل (ددلاین)</span>
                 </div>
-                {selectedTask.extension_status !== "pending" && (
-                  <button
-                    type="button"
-                    onClick={() => setExtOpen((v) => !v)}
-                    className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-white border border-zinc-200 text-zinc-700 hover:border-orange-400 hover:text-orange-600 transition-colors cursor-pointer"
-                  >
-                    {extOpen ? "بستن فرم درخواست" : "درخواست تمدید مهلت"}
-                  </button>
-                )}
+                <div className="flex items-center gap-2">
+                  {canApproveExtensions && (
+                    <button
+                      type="button"
+                      onClick={openEditSettings}
+                      className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-orange-50 border border-orange-200 text-orange-700 hover:bg-orange-100 transition-colors cursor-pointer"
+                    >
+                      {editSettingsOpen ? "بستن ویرایش تنظیمات" : "ویرایش مستقیم ددلاین / تنظیمات"}
+                    </button>
+                  )}
+                  {selectedTask.extension_status !== "pending" && (
+                    <button
+                      type="button"
+                      onClick={() => setExtOpen((v) => !v)}
+                      className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-white border border-zinc-200 text-zinc-700 hover:border-orange-400 hover:text-orange-600 transition-colors cursor-pointer"
+                    >
+                      {extOpen ? "بستن فرم درخواست" : "درخواست تمدید مهلت"}
+                    </button>
+                  )}
+                </div>
               </div>
+
+              {canApproveExtensions && editSettingsOpen && (
+                <div className="p-3 bg-white rounded-xl border border-orange-200 space-y-3">
+                  <div className="text-[11px] font-bold text-orange-700">
+                    تنظیم مستقیم مهلت تحویل، اولویت و مسئولین تسک (ویژه مدیران مجاز)
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <JalaliDatePicker
+                      label="مهلت تحویل جدید (ددلاین)"
+                      value={editDueDate}
+                      onChange={setEditDueDate}
+                    />
+                    <div>
+                      <label className="block text-[11px] font-bold text-zinc-700 mb-1">اولویت</label>
+                      <select
+                        value={editPriority}
+                        onChange={(e) => setEditPriority(e.target.value)}
+                        className="w-full px-3 py-2 text-xs bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-hidden focus:bg-white focus:border-orange-500"
+                      >
+                        <option value="low">اولویت پایین</option>
+                        <option value="medium">اولویت متوسط</option>
+                        <option value="urgent">اولویت فوری</option>
+                        <option value="critical">اولویت بحرانی</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-zinc-700 mb-1">مسئول اجرا</label>
+                      <select
+                        value={editAssigneeId}
+                        onChange={(e) => setEditAssigneeId(e.target.value)}
+                        className="w-full px-3 py-2 text-xs bg-zinc-50 border border-zinc-200 rounded-xl"
+                      >
+                        {members.map((m) => (
+                          <option key={m.id} value={m.id}>{m.name} ({m.role})</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-zinc-700 mb-1">مسئول پیگیری</label>
+                      <select
+                        value={editFollowerId}
+                        onChange={(e) => setEditFollowerId(e.target.value)}
+                        className="w-full px-3 py-2 text-xs bg-zinc-50 border border-zinc-200 rounded-xl"
+                      >
+                        <option value="">بدون مسئول پیگیری</option>
+                        {members.map((m) => (
+                          <option key={m.id} value={m.id}>{m.name} ({m.role})</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      disabled={editSaving}
+                      onClick={handleSaveTaskSettings}
+                      className="px-4 py-1.5 rounded-xl text-xs font-bold bg-orange-500 hover:bg-orange-600 text-white transition-colors cursor-pointer"
+                    >
+                      {editSaving ? "در حال ذخیره..." : "ذخیره تغییرات تسک"}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {selectedTask.extension_status === "pending" && (
                 <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 space-y-2 text-xs">

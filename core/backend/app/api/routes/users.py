@@ -73,6 +73,7 @@ def get_roles_metadata(current_user: CurrentUser) -> dict[str, Any]:
         {"id": "tasks:view", "name": "مشاهده وظایف و کانبان", "category": "مدیریت تسک‌ها"},
         {"id": "tasks:create", "name": "ثبت تسک جدید", "category": "مدیریت تسک‌ها"},
         {"id": "tasks:update", "name": "ویرایش و تغییر وضعیت تسک", "category": "مدیریت تسک‌ها"},
+        {"id": "tasks:edit_settings", "name": "ویرایش تنظیمات و مهلت تحویل (ددلاین) تسک‌ها", "category": "مدیریت تسک‌ها"},
         {"id": "tasks:delete", "name": "حذف تسک", "category": "مدیریت تسک‌ها"},
         {"id": "procurement:view", "name": "مشاهده درخواست‌های خرید", "category": "تدارکات و خرید"},
         {"id": "procurement:create", "name": "ثبت درخواست خرید (PR)", "category": "تدارکات و خرید"},

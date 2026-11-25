@@ -230,10 +230,30 @@ async def create_task(req: TaskCreateRequest, current_user: CurrentUser, backgro
     return task
 
 
+def _can_edit_task_settings(user: User) -> bool:
+    if user.is_superuser:
+        return True
+    if user.role in ("admin", "ceo", "managing_director", "office_manager", "manager"):
+        return True
+    try:
+        import json
+        perms = json.loads(user.permissions) if isinstance(user.permissions, str) else (user.permissions or [])
+        return "tasks:edit_settings" in perms
+    except Exception:
+        return False
+
+
 @router.patch("/{task_id}")
 async def update_task(task_id: str, req: TaskUpdateRequest, current_user: CurrentUser, background_tasks: BackgroundTasks) -> dict[str, Any]:
     """Update task fields or move across Kanban status columns."""
     updates = {k: v for k, v in req.model_dump().items() if v is not None}
+    settings_fields = {"title", "description", "priority", "due_date", "assignee_name", "assignee_id", "follower_name", "follower_id", "location"}
+    if any(k in settings_fields for k in updates) and not _can_edit_task_settings(current_user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="شما مجوز تغییر مستقیم تنظیمات یا مهلت تحویل تسک را ندارید؛ لطفاً از گزینه «درخواست تمدید مهلت» استفاده نمایید.",
+        )
+
     updated = await plane_adapter.update_task(task_id, updates)
     if not updated:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -287,14 +307,10 @@ async def review_deadline_extension(
     """
     Admin / Management approval or rejection of a pending deadline extension request.
     """
-    allowed_review_roles = {
-        "admin", "ceo", "managing_director", "manager",
-        "office_manager", "production_manager",
-    }
-    if not current_user.is_superuser and current_user.role not in allowed_review_roles:
+    if not _can_edit_task_settings(current_user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="فقط مدیریت یا مدیر سیستم مجاز به تایید یا رد درخواست تمدید مهلت است.",
+            detail="فقط مدیریت یا کاربران دارای مجوز تنظیمات تسک مجاز به تایید یا رد درخواست تمدید مهلت هستند.",
         )
 
     existing = await plane_adapter.get_task(task_id)

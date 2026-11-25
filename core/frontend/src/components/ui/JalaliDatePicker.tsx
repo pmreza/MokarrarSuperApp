@@ -171,7 +171,7 @@ export const JalaliDatePicker: React.FC<JalaliDatePickerProps> = ({
 
       {/* Calendar Popup Dropdown */}
       {isOpen && (
-        <div className="absolute z-50 mt-1 right-0 w-72 bg-white rounded-2xl shadow-xl border border-zinc-200/90 p-4 animate-scale-in text-zinc-800">
+        <div className="absolute z-50 mt-1 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-0 w-72 max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-xl border border-zinc-200/90 p-4 animate-scale-in text-zinc-800">
           {/* Header Month / Year Navigator */}
           <div className="flex items-center justify-between pb-3 border-b border-zinc-100">
             <button

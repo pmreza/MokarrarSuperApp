@@ -93,7 +93,7 @@ function Login() {
                     <div className="relative">
                       <Input
                         placeholder="مثال: admin@mokarrar.com یا شناسه سازمانی"
-                        className="text-right text-xs pr-9 pl-3 h-10 rounded-xl bg-zinc-50 border-zinc-200 focus:bg-white transition-colors"
+                        className="text-right text-sm sm:text-xs pr-9 pl-3 h-11 sm:h-10 rounded-xl bg-zinc-50 border-zinc-200 focus:bg-white transition-colors"
                         {...field}
                       />
                       <User className="w-4 h-4 text-zinc-400 absolute right-3 top-3 pointer-events-none" />
@@ -116,7 +116,7 @@ function Login() {
                     <div className="relative">
                       <PasswordInput
                         placeholder="رمز عبور شما"
-                        className="text-right text-xs pr-9 pl-10 h-10 rounded-xl bg-zinc-50 border-zinc-200 font-mono focus:bg-white transition-colors"
+                        className="text-right text-sm sm:text-xs pr-9 pl-10 h-11 sm:h-10 rounded-xl bg-zinc-50 border-zinc-200 font-mono placeholder:font-sans focus:bg-white transition-colors"
                         {...field}
                       />
                       <Lock className="w-4 h-4 text-zinc-400 absolute right-3 top-3 pointer-events-none" />
@@ -138,8 +138,8 @@ function Login() {
 
             {/* Corporate Closed Registration Notice */}
             <div className="mt-4 pt-4 border-t border-zinc-100/80 text-center">
-              <span className="text-[11px] text-zinc-400">
-                حساب‌های کاربری منحصراً توسط مدیر سیستم تخصیص می‌یابند
+              <span className="text-xs text-zinc-500">
+                حساب‌های کاربری صرفاً توسط مدیر سیستم تخصیص می‌یابند
               </span>
             </div>
           </form>

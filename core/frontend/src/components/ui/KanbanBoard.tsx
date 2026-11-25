@@ -144,7 +144,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
             onDragOver={(e) => handleDragOver(e, col.id)}
             onDragLeave={(e) => handleDragLeave(e, col.id)}
             onDrop={(e) => handleDrop(e, col.id)}
-            className={`flex flex-col rounded-2xl p-3 min-h-[550px] transition-all duration-200 border ${
+            className={`flex flex-col rounded-2xl p-3 min-h-[160px] md:min-h-[550px] transition-all duration-200 border ${
               isTarget
                 ? "bg-orange-50/70 border-orange-500 border-2 border-dashed shadow-md"
                 : "bg-zinc-100/60 border-zinc-200/90"
@@ -275,15 +275,15 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                         </div>
                       </div>
 
-                      {/* Quick Move Buttons (accessible fallback) */}
+                      {/* Quick Move Buttons (always visible on touch/mobile, hover on desktop) */}
                       <div
-                        className="mt-2.5 pt-2 border-t border-zinc-100/60 flex items-center justify-between gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="mt-2.5 pt-2 border-t border-zinc-100/60 flex items-center justify-between gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity"
                         onClick={(e) => e.stopPropagation()}
                       >
                         {prevCol ? (
                           <button
                             onClick={() => onTaskStateChange(task.id, prevCol)}
-                            className="px-2 py-0.5 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded text-[11px] flex items-center gap-1 cursor-pointer"
+                            className="px-2.5 py-1.5 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg text-[11px] flex items-center gap-1 cursor-pointer"
                             title="انتقال به ستون قبل"
                           >
                             <ArrowRight className="w-3 h-3" />
@@ -294,7 +294,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                         {nextCol ? (
                           <button
                             onClick={() => onTaskStateChange(task.id, nextCol)}
-                            className="px-2 py-0.5 text-orange-600 hover:text-orange-800 hover:bg-orange-50 rounded text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                            className="px-2.5 py-1.5 text-orange-600 hover:text-orange-800 hover:bg-orange-50 rounded-lg text-[11px] font-bold flex items-center gap-1 cursor-pointer"
                             title="انتقال به ستون بعد"
                           >
                             <span>بعدی</span>

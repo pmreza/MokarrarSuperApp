@@ -23,7 +23,7 @@ export const AppShell: React.FC = () => {
   ]
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-slate-50 text-slate-900 font-sans" dir="rtl">
+    <div className="flex h-dvh w-full overflow-hidden bg-slate-50 text-slate-900 font-sans" dir="rtl">
       {/* 1. Mobile Backdrop Overlay */}
       {mobileMenuOpen && (
         <div
@@ -39,7 +39,7 @@ export const AppShell: React.FC = () => {
       />
 
       {/* 3. Main Content Viewport */}
-      <div className="flex flex-col flex-1 min-w-0 h-screen overflow-hidden">
+      <div className="flex flex-col flex-1 min-w-0 h-dvh overflow-hidden">
         {/* Dynamic Context Header */}
         <Header onOpenMobileMenu={() => setMobileMenuOpen(true)} />
 

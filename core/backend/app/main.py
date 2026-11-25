@@ -59,4 +59,5 @@ app.add_middleware(
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 if FRONTEND_DIR.exists():
-    app.frontend("/", directory=FRONTEND_DIR)
+    from fastapi.staticfiles import StaticFiles
+    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")

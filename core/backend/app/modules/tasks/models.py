@@ -22,6 +22,11 @@ class TaskRecord(SQLModel, table=True):
     tags: str = Field(default="[]")
     is_deleted: bool = Field(default=False)
     deleted_at: str = Field(default="")
+    requested_due_date: str | None = Field(default=None, max_length=50)
+    extension_reason: str | None = Field(default=None, max_length=1000)
+    extension_status: str | None = Field(default=None, max_length=50)
+    extension_requested_by: str | None = Field(default=None, max_length=255)
+    extension_requested_at: str | None = Field(default=None, max_length=100)
     metadata_json: str = Field(default="{}")
     comments_json: str = Field(default="[]")
 
@@ -65,6 +70,11 @@ class TaskRecord(SQLModel, table=True):
             "tags": parsed_tags,
             "is_deleted": bool(getattr(self, "is_deleted", False)),
             "deleted_at": getattr(self, "deleted_at", "") or "",
+            "requested_due_date": getattr(self, "requested_due_date", None),
+            "extension_reason": getattr(self, "extension_reason", None),
+            "extension_status": getattr(self, "extension_status", None),
+            "extension_requested_by": getattr(self, "extension_requested_by", None),
+            "extension_requested_at": getattr(self, "extension_requested_at", None),
             "metadata": parsed_metadata,
             "comments": parsed_comments,
         }

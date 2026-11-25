@@ -30,6 +30,7 @@ import { StatusBadge } from "@/components/ui/StatusBadge"
 import { Modal } from "@/components/ui/Modal"
 import { JalaliDatePicker } from "@/components/ui/JalaliDatePicker"
 import { api } from "@/services/api"
+import useAuth from "@/hooks/useAuth"
 import { toast } from "sonner"
 
 interface TeamMember {
@@ -69,6 +70,20 @@ export const TasksView: React.FC = () => {
 
   // Comment input
   const [commentText, setCommentText] = useState("")
+
+  // Deadline extension request state
+  const { user: currentUser } = useAuth()
+  const [extOpen, setExtOpen] = useState(false)
+  const [extDueDate, setExtDueDate] = useState("۱۴۰۵/۰۵/۰۱")
+  const [extReason, setExtReason] = useState("")
+  const [extSubmitting, setExtSubmitting] = useState(false)
+
+  const canApproveExtensions = Boolean(
+    currentUser?.is_superuser ||
+      ["admin", "ceo", "managing_director", "manager", "office_manager", "production_manager"].includes(
+        (currentUser as any)?.role || ""
+      )
+  )
 
   const loadData = async () => {
     try {
@@ -215,6 +230,45 @@ export const TasksView: React.FC = () => {
       toast.success("تسک به طور دائمی حذف گردید.")
     } catch (err) {
       toast.error("خطا در حذف دائمی تسک")
+    }
+  }
+
+  const handleRequestExtension = async () => {
+    if (!selectedTask || !extDueDate.trim()) return
+    try {
+      setExtSubmitting(true)
+      const updated = await api.tasks.requestExtension(selectedTask.id, {
+        requested_due_date: extDueDate,
+        reason: extReason.trim(),
+      })
+      setTasks((prev) => prev.map((t) => (t.id === selectedTask.id ? updated : t)))
+      setSelectedTask(updated)
+      setExtOpen(false)
+      setExtReason("")
+      toast.success("درخواست تمدید مهلت ثبت شد و پس از تایید مدیریت اعمال می‌گردد.")
+    } catch (err) {
+      toast.error("خطا در ثبت درخواست تمدید مهلت")
+    } finally {
+      setExtSubmitting(false)
+    }
+  }
+
+  const handleReviewExtension = async (action: "approve" | "reject") => {
+    if (!selectedTask) return
+    try {
+      setExtSubmitting(true)
+      const updated = await api.tasks.reviewExtension(selectedTask.id, action)
+      setTasks((prev) => prev.map((t) => (t.id === selectedTask.id ? updated : t)))
+      setSelectedTask(updated)
+      toast.success(
+        action === "approve"
+          ? "تمدید مهلت تایید شد و تاریخ تحویل جدید اعمال گردید."
+          : "درخواست تمدید مهلت رد شد."
+      )
+    } catch (err) {
+      toast.error("خطا در بررسی درخواست تمدید")
+    } finally {
+      setExtSubmitting(false)
     }
   }
 
@@ -739,6 +793,101 @@ export const TasksView: React.FC = () => {
                   {selectedTask.due_date || "نامشخص"}
                 </span>
               </div>
+            </div>
+
+            {/* Deadline Extension Request & Admin Approval */}
+            <div className="p-3.5 rounded-xl border border-zinc-200 bg-zinc-50/80 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-zinc-800">
+                  <Calendar className="w-4 h-4 text-orange-600" />
+                  <span>مدیریت تمدید مهلت تحویل (ددلاین)</span>
+                </div>
+                {selectedTask.extension_status !== "pending" && (
+                  <button
+                    type="button"
+                    onClick={() => setExtOpen((v) => !v)}
+                    className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-white border border-zinc-200 text-zinc-700 hover:border-orange-400 hover:text-orange-600 transition-colors cursor-pointer"
+                  >
+                    {extOpen ? "بستن فرم درخواست" : "درخواست تمدید مهلت"}
+                  </button>
+                )}
+              </div>
+
+              {selectedTask.extension_status === "pending" && (
+                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 space-y-2 text-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-bold text-amber-900">
+                      ⏳ در انتظار تایید مدیریت برای تمدید تا تاریخ:{" "}
+                      <span className="font-mono underline">{selectedTask.requested_due_date}</span>
+                    </span>
+                    <span className="text-[10px] text-amber-700">
+                      درخواست‌کننده: {selectedTask.extension_requested_by || "همکار"}
+                    </span>
+                  </div>
+                  {selectedTask.extension_reason && (
+                    <p className="text-[11px] text-amber-800">دلیل: {selectedTask.extension_reason}</p>
+                  )}
+                  {canApproveExtensions && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        disabled={extSubmitting}
+                        onClick={() => handleReviewExtension("approve")}
+                        className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1 transition-colors cursor-pointer"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>تایید و اعمال تاریخ جدید</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={extSubmitting}
+                        onClick={() => handleReviewExtension("reject")}
+                        className="px-3 py-1.5 rounded-lg text-[11px] font-bold bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                      >
+                        رد درخواست
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {selectedTask.extension_status === "rejected" && (
+                <p className="text-[11px] text-rose-600">
+                  درخواست تمدید قبلی ({selectedTask.requested_due_date}) توسط مدیریت رد شده است.
+                </p>
+              )}
+
+              {extOpen && (
+                <div className="p-3 bg-white rounded-xl border border-zinc-200 space-y-3">
+                  <JalaliDatePicker
+                    label="تاریخ پیشنهادی جدید"
+                    value={extDueDate}
+                    onChange={setExtDueDate}
+                  />
+                  <div>
+                    <label className="block text-[11px] font-bold text-zinc-700 mb-1">
+                      توضیح / دلیل نیاز به زمان بیشتر
+                    </label>
+                    <input
+                      type="text"
+                      value={extReason}
+                      onChange={(e) => setExtReason(e.target.value)}
+                      placeholder="مثلاً: تاخیر در تامین قطعه یا نیاز به تست کنترل کیفیت..."
+                      className="w-full px-3 py-2 text-xs bg-zinc-50 border border-zinc-200 rounded-xl focus:outline-hidden focus:bg-white focus:border-orange-500"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      disabled={extSubmitting}
+                      onClick={handleRequestExtension}
+                      className="px-4 py-1.5 rounded-xl text-xs font-bold bg-orange-500 hover:bg-orange-600 text-white transition-colors cursor-pointer"
+                    >
+                      {extSubmitting ? "در حال ثبت..." : "ارسال درخواست به مدیریت"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Comments Thread */}

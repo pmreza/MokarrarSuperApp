@@ -48,7 +48,8 @@ def get_current_user(session: SessionDep, token: TokenDep) -> User:
 
     # Invalidate session if password was changed after token issuance
     token_pwd_hash = payload.get("pwd_hash")
-    if token_pwd_hash and user.hashed_password[:12] != token_pwd_hash:
+    current_fingerprint = security.get_password_fingerprint(getattr(user, "hashed_password", None))
+    if token_pwd_hash and current_fingerprint and current_fingerprint != token_pwd_hash:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="رمز عبور شما تغییر یافته است. لطفاً مجدداً وارد شوید.",

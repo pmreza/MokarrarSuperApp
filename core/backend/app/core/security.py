@@ -169,7 +169,27 @@ DEFAULT_ROLE_PERMISSIONS: dict[str, list[str]] = {
 # Role hierarchy and permissions mapping
 ROLE_HIERARCHY = {
     UserRole.ADMIN: list(UserRole),
-    UserRole.CEO: [UserRole.CEO, UserRole.MANAGER, UserRole.STAFF, UserRole.LINE_SUPERVISOR, UserRole.WAREHOUSE_MANAGER, UserRole.PROCUREMENT_OFFICER],
+    UserRole.MANAGING_DIRECTOR: list(UserRole),
+    UserRole.CEO: list(UserRole),
+    UserRole.OFFICE_MANAGER: [
+        UserRole.OFFICE_MANAGER, UserRole.MANAGER, UserRole.RD_ENVIRONMENT,
+        UserRole.IT_SUPERVISOR, UserRole.ADMIN_STAFF, UserRole.PROCUREMENT_OFFICER,
+        UserRole.WAREHOUSE_MANAGER, UserRole.WAREHOUSE, UserRole.STAFF,
+    ],
+    UserRole.PRODUCTION_MANAGER: [
+        UserRole.PRODUCTION_MANAGER, UserRole.LINE_SUPERVISOR, UserRole.QC_SUPERVISOR,
+        UserRole.MAINTENANCE_SUPERVISOR, UserRole.WAREHOUSE_MANAGER, UserRole.WAREHOUSE,
+        UserRole.ADMIN_STAFF, UserRole.WORKER, UserRole.STAFF,
+    ],
+    UserRole.IT_SUPERVISOR: [UserRole.IT_SUPERVISOR, UserRole.ADMIN_STAFF, UserRole.STAFF],
+    UserRole.RD_ENVIRONMENT: [UserRole.RD_ENVIRONMENT, UserRole.STAFF],
+    UserRole.QC_SUPERVISOR: [UserRole.QC_SUPERVISOR, UserRole.WORKER, UserRole.STAFF],
+    UserRole.MAINTENANCE_SUPERVISOR: [
+        UserRole.MAINTENANCE_SUPERVISOR, UserRole.WAREHOUSE_MANAGER,
+        UserRole.WAREHOUSE, UserRole.WORKER, UserRole.STAFF,
+    ],
+    UserRole.ADMIN_STAFF: [UserRole.ADMIN_STAFF, UserRole.PROCUREMENT_OFFICER, UserRole.WAREHOUSE, UserRole.STAFF],
+    UserRole.WORKER: [UserRole.WORKER, UserRole.STAFF],
     UserRole.MANAGER: [UserRole.MANAGER, UserRole.STAFF, UserRole.WAREHOUSE],
     UserRole.LINE_SUPERVISOR: [UserRole.LINE_SUPERVISOR, UserRole.STAFF],
     UserRole.WAREHOUSE_MANAGER: [UserRole.WAREHOUSE_MANAGER, UserRole.WAREHOUSE, UserRole.STAFF],
@@ -177,6 +197,14 @@ ROLE_HIERARCHY = {
     UserRole.WAREHOUSE: [UserRole.WAREHOUSE, UserRole.STAFF],
     UserRole.STAFF: [UserRole.STAFF],
 }
+
+
+def get_password_fingerprint(hashed_password: str | None) -> str | None:
+    """Return a stable 16-char SHA-256 fingerprint of a hashed password for JWT invalidation."""
+    if not hashed_password:
+        return None
+    import hashlib
+    return hashlib.sha256(hashed_password.encode("utf-8")).hexdigest()[:16]
 
 
 def role_satisfies(user_role: str | UserRole, required_roles: list[str | UserRole]) -> bool:

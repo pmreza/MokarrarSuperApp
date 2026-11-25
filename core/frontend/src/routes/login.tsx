@@ -116,7 +116,7 @@ function Login() {
                     <div className="relative">
                       <PasswordInput
                         placeholder="رمز عبور شما"
-                        className="text-right text-xs pr-9 pl-3 h-10 rounded-xl bg-zinc-50 border-zinc-200 font-mono focus:bg-white transition-colors"
+                        className="text-right text-xs pr-9 pl-10 h-10 rounded-xl bg-zinc-50 border-zinc-200 font-mono focus:bg-white transition-colors"
                         {...field}
                       />
                       <Lock className="w-4 h-4 text-zinc-400 absolute right-3 top-3 pointer-events-none" />

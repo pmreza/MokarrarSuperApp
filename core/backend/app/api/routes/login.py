@@ -40,7 +40,7 @@ def login_access_token(
             user.id,
             expires_delta=access_token_expires,
             role=user.role,
-            pwd_hash=user.hashed_password[:12] if getattr(user, "hashed_password", None) else None,
+            pwd_hash=security.get_password_fingerprint(getattr(user, "hashed_password", None)),
         )
     )
 

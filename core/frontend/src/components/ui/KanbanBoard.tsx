@@ -18,6 +18,11 @@ export interface TaskItem {
   tags?: string[]
   is_deleted?: boolean
   deleted_at?: string
+  requested_due_date?: string | null
+  extension_reason?: string | null
+  extension_status?: string | null
+  extension_requested_by?: string | null
+  extension_requested_at?: string | null
   comments?: Array<{ author: string; content: string; created_at: string }>
 }
 

@@ -54,11 +54,23 @@ def init_db(session: Session) -> None:
     except Exception:
         session.rollback()
 
-    try:
-        session.exec(text("ALTER TABLE task_records ADD COLUMN IF NOT EXISTS location VARCHAR(100) DEFAULT 'central_office'"))
-        session.commit()
-    except Exception:
-        session.rollback()
+    for stmt in [
+        "ALTER TABLE task_records ADD COLUMN IF NOT EXISTS location VARCHAR(100) DEFAULT 'central_office'",
+        "ALTER TABLE task_records ADD COLUMN IF NOT EXISTS follower_name VARCHAR(255) DEFAULT ''",
+        "ALTER TABLE task_records ADD COLUMN IF NOT EXISTS follower_id VARCHAR(100) DEFAULT ''",
+        "ALTER TABLE task_records ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE",
+        "ALTER TABLE task_records ADD COLUMN IF NOT EXISTS deleted_at VARCHAR(100) DEFAULT ''",
+        "ALTER TABLE task_records ADD COLUMN IF NOT EXISTS requested_due_date VARCHAR(50)",
+        "ALTER TABLE task_records ADD COLUMN IF NOT EXISTS extension_reason VARCHAR(1000)",
+        "ALTER TABLE task_records ADD COLUMN IF NOT EXISTS extension_status VARCHAR(50)",
+        "ALTER TABLE task_records ADD COLUMN IF NOT EXISTS extension_requested_by VARCHAR(255)",
+        "ALTER TABLE task_records ADD COLUMN IF NOT EXISTS extension_requested_at VARCHAR(100)",
+    ]:
+        try:
+            session.exec(text(stmt))
+            session.commit()
+        except Exception:
+            session.rollback()
 
     # Pre-seed initial Super Admin ONLY if not exists.
     # No automated demo users or mock accounts are ever re-created (production mode).

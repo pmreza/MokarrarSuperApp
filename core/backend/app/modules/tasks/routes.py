@@ -1,3 +1,5 @@
+import uuid
+from datetime import datetime, UTC
 from typing import Any
 from fastapi import APIRouter, HTTPException, Query, status, BackgroundTasks
 from pydantic import BaseModel, Field
@@ -45,6 +47,30 @@ class CommentCreateRequest(BaseModel):
     content: str = Field(min_length=1)
 
 
+class ExtensionRequestPayload(BaseModel):
+    requested_due_date: str = Field(min_length=4, max_length=50)
+    reason: str = Field(default="", max_length=1000)
+
+
+class ExtensionReviewPayload(BaseModel):
+    action: str = Field(pattern="^(approve|reject)$")
+
+
+def _find_user(session: Session, user_id_str: str | None, fallback_name: str | None) -> User | None:
+    if user_id_str and user_id_str not in ("unassigned", ""):
+        try:
+            u = session.get(User, uuid.UUID(str(user_id_str)))
+            if u:
+                return u
+        except Exception:
+            pass
+    if fallback_name and fallback_name not in ("تخصیص‌نیافته", "مسئول پیگیری", ""):
+        return session.exec(
+            select(User).where((User.full_name == fallback_name) | (User.email == fallback_name))
+        ).first()
+    return None
+
+
 async def notify_users_via_bale(task: dict[str, Any], action: str = "create"):
     """Send Bale push notifications to Assignee and Follower if connected."""
     bale_token = getattr(settings, "BALE_BOT_TOKEN", None)
@@ -63,12 +89,7 @@ async def notify_users_via_bale(task: dict[str, Any], action: str = "create"):
     try:
         with Session(engine) as session:
             # 1. Notify Assignee
-            assignee_user = None
-            if assignee_id and assignee_id != "unassigned":
-                try:
-                    assignee_user = session.get(User, int(assignee_id))
-                except Exception:
-                    assignee_user = session.exec(select(User).where((User.full_name == assignee_name) | (User.email == assignee_name))).first()
+            assignee_user = _find_user(session, assignee_id, assignee_name)
 
             if assignee_user and assignee_user.bale_chat_id:
                 if action == "create":
@@ -82,17 +103,24 @@ async def notify_users_via_bale(task: dict[str, Any], action: str = "create"):
                     )
                 elif action == "done":
                     msg = f"✅ دستور کار *{title}* به عنوان اتمام‌یافته علامت‌گذاری شد."
+                elif action == "extension_approved":
+                    msg = (
+                        f"✅ *درخواست تمدید مهلت شما تایید شد!*\n\n"
+                        f"• تسک: *{title}*\n"
+                        f"• مهلت تحویل جدید: `{due}`"
+                    )
+                elif action == "extension_rejected":
+                    msg = (
+                        f"❌ *درخواست تمدید مهلت شما رد شد.*\n\n"
+                        f"• تسک: *{title}*\n"
+                        f"• مهلت تحویل فعلی همچنان `{due}` است."
+                    )
                 else:
                     msg = f"🔄 وضعیت دستور کار *{title}* بروزرسانی گردید."
                 await send_bale_message(bale_token, assignee_user.bale_chat_id, msg)
 
             # 2. Notify Follower
-            follower_user = None
-            if follower_id:
-                try:
-                    follower_user = session.get(User, int(follower_id))
-                except Exception:
-                    follower_user = session.exec(select(User).where((User.full_name == follower_name) | (User.email == follower_name))).first()
+            follower_user = _find_user(session, follower_id, follower_name)
 
             if follower_user and follower_user.bale_chat_id:
                 if action == "create":
@@ -106,10 +134,21 @@ async def notify_users_via_bale(task: dict[str, Any], action: str = "create"):
                     )
                 elif action == "done":
                     f_msg = f"🎉 *اطلاع به مسئول پیگیری:*\nدستور کار *{title}* توسط {assignee_name} تکمیل شد."
+                elif action == "extension_requested":
+                    req_due = task.get("requested_due_date", "")
+                    reason = task.get("extension_reason") or "بدون توضیح"
+                    f_msg = (
+                        f"⏳ *درخواست تمدید مهلت ثبت شد:*\n\n"
+                        f"• تسک: *{title}*\n"
+                        f"• درخواست‌کننده: {task.get('extension_requested_by', assignee_name)}\n"
+                        f"• تاریخ پیشنهادی: `{req_due}`\n"
+                        f"• دلیل: {reason}\n\n"
+                        f"در انتظار تایید مدیریت است."
+                    )
                 else:
                     f_msg = f"🔔 *اطلاع به مسئول پیگیری:*\nتسک *{title}* بروزرسانی شد."
                 await send_bale_message(bale_token, follower_user.bale_chat_id, f_msg)
-    except Exception as e:
+    except Exception:
         pass
 
 
@@ -211,6 +250,77 @@ async def restore_task(task_id: str, current_user: CurrentUser) -> dict[str, Any
     if not restored:
         raise HTTPException(status_code=404, detail="Task not found")
     return restored
+
+
+@router.post("/{task_id}/request-extension")
+async def request_deadline_extension(
+    task_id: str,
+    req: ExtensionRequestPayload,
+    current_user: CurrentUser,
+    background_tasks: BackgroundTasks,
+) -> dict[str, Any]:
+    """
+    Allow assignee/user to request a deadline extension.
+    Does NOT modify due_date until an admin or manager approves it.
+    """
+    updates = {
+        "requested_due_date": req.requested_due_date.strip(),
+        "extension_reason": req.reason.strip(),
+        "extension_status": "pending",
+        "extension_requested_by": current_user.full_name or current_user.email,
+        "extension_requested_at": datetime.now(UTC).isoformat(),
+    }
+    updated = await plane_adapter.update_task(task_id, updates)
+    if not updated:
+        raise HTTPException(status_code=404, detail="تسک مورد نظر یافت نشد.")
+    background_tasks.add_task(notify_users_via_bale, updated, "extension_requested")
+    return updated
+
+
+@router.post("/{task_id}/review-extension")
+async def review_deadline_extension(
+    task_id: str,
+    req: ExtensionReviewPayload,
+    current_user: CurrentUser,
+    background_tasks: BackgroundTasks,
+) -> dict[str, Any]:
+    """
+    Admin / Management approval or rejection of a pending deadline extension request.
+    """
+    allowed_review_roles = {
+        "admin", "ceo", "managing_director", "manager",
+        "office_manager", "production_manager",
+    }
+    if not current_user.is_superuser and current_user.role not in allowed_review_roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="فقط مدیریت یا مدیر سیستم مجاز به تایید یا رد درخواست تمدید مهلت است.",
+        )
+
+    existing = await plane_adapter.get_task(task_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="تسک مورد نظر یافت نشد.")
+
+    if existing.get("extension_status") != "pending" or not existing.get("requested_due_date"):
+        raise HTTPException(status_code=400, detail="درخواست تمدید فعالی برای این تسک وجود ندارد.")
+
+    if req.action == "approve":
+        updates = {
+            "due_date": existing["requested_due_date"],
+            "extension_status": "approved",
+        }
+        action_name = "extension_approved"
+    else:
+        updates = {
+            "extension_status": "rejected",
+        }
+        action_name = "extension_rejected"
+
+    updated = await plane_adapter.update_task(task_id, updates)
+    if not updated:
+        raise HTTPException(status_code=404, detail="خطا در بروزرسانی تسک.")
+    background_tasks.add_task(notify_users_via_bale, updated, action_name)
+    return updated
 
 
 @router.delete("/{task_id}", status_code=status.HTTP_200_OK)

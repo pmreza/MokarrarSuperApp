@@ -10,6 +10,7 @@ from sqlmodel import Session, select, col
 from app.core.config import settings
 from app.core.db import engine
 from app.core.security import ROLE_TITLES, verify_password
+from app.api.deps import CurrentUser
 from app.models import User
 from app.modules.tasks.models import TaskRecord
 from app.adapters.inventree_adapter import inventree_adapter
@@ -177,7 +178,14 @@ async def bale_webhook(request: Request, background_tasks: BackgroundTasks):
                     )
                 ).first()
 
-                if target_user and verify_password(password, target_user.hashed_password):
+                verified, _ = verify_password(password, target_user.hashed_password) if target_user else (False, None)
+                if target_user and target_user.is_active and verified:
+                    # Unlink any previous user tied to this Bale chat_id
+                    prev_users = session.exec(select(User).where(User.bale_chat_id == chat_id_str)).all()
+                    for pu in prev_users:
+                        if pu.id != target_user.id:
+                            pu.bale_chat_id = None
+                            session.add(pu)
                     target_user.bale_chat_id = chat_id_str
                     session.add(target_user)
                     session.commit()
@@ -334,7 +342,14 @@ async def bale_webhook(request: Request, background_tasks: BackgroundTasks):
                 return {"method": "sendMessage", "chat_id": chat_id, "text": reply_text, "reply_markup": keyboard}
 
             target_user = session.get(User, pending["user_id"])
-            if target_user and verify_password(text, target_user.hashed_password):
+            verified, _ = verify_password(text, target_user.hashed_password) if target_user else (False, None)
+            if target_user and target_user.is_active and verified:
+                # Unlink any previous user tied to this Bale chat_id
+                prev_users = session.exec(select(User).where(User.bale_chat_id == chat_id_str)).all()
+                for pu in prev_users:
+                    if pu.id != target_user.id:
+                        pu.bale_chat_id = None
+                        session.add(pu)
                 target_user.bale_chat_id = chat_id_str
                 session.add(target_user)
                 session.commit()
@@ -426,9 +441,9 @@ async def bale_webhook(request: Request, background_tasks: BackgroundTasks):
                 return {"method": "sendMessage", "chat_id": chat_id, "text": reply_text, "reply_markup": keyboard}
 
         # ----------------------------------------------------------------------
-        # PATH 3: User is NOT authenticated in DB
+        # PATH 3: User is NOT authenticated or inactive in DB
         # ----------------------------------------------------------------------
-        if not user:
+        if not user or not user.is_active:
             reply_text = (
                 "🏭 *به بازوی اختصاصی سامانه یکپارچه مکرر بازآفرین خوش آمدید!*\n\n"
                 "🔒 **ورود و اعتبارسنجی الزامی است:**\n"
@@ -475,12 +490,16 @@ async def bale_webhook(request: Request, background_tasks: BackgroundTasks):
                 f"• `👤 مشخصات حساب` : بررسی وضعیت دسترسی و شماره ثبت‌شده"
             )
         elif text in ("📋 دستور کارهای من", "/tasks", "وظایف من", "📋 وظایف من"):
+            uid_str = str(user.id)
             query = select(TaskRecord).where(
-                (TaskRecord.is_deleted == False) & (
-                    (TaskRecord.assignee_name.ilike(f"%{user.full_name or '---'}%")) |
+                (TaskRecord.is_deleted == False) &
+                (TaskRecord.state != "done") & (
+                    (TaskRecord.assignee_id == uid_str) |
                     (TaskRecord.assignee_id == user.email) |
-                    (TaskRecord.follower_name.ilike(f"%{user.full_name or '---'}%")) |
+                    (TaskRecord.assignee_name.ilike(f"%{user.full_name or '---'}%")) |
+                    (TaskRecord.follower_id == uid_str) |
                     (TaskRecord.follower_id == user.email) |
+                    (TaskRecord.follower_name.ilike(f"%{user.full_name or '---'}%")) |
                     (TaskRecord.location == user.location)
                 )
             ).order_by(col(TaskRecord.created_at).desc()).limit(8)
@@ -491,11 +510,28 @@ async def bale_webhook(request: Request, background_tasks: BackgroundTasks):
             if len(parts) > 1:
                 target_id = parts[1].strip()
                 task_rec = session.get(TaskRecord, target_id)
-                if task_rec:
-                    task_rec.state = "done"
-                    session.add(task_rec)
-                    session.commit()
-                    reply_text = f"✅ وضعیت دستور کار `{task_rec.id}` با عنوان *{task_rec.title}* با موفقیت به *اتمام یافته (DONE)* تغییر یافت."
+                if task_rec and not task_rec.is_deleted:
+                    uid_str = str(user.id)
+                    is_mgmt = user.is_superuser or user.role in (
+                        "admin", "ceo", "managing_director", "manager",
+                        "office_manager", "production_manager",
+                    )
+                    is_owner = (
+                        task_rec.assignee_id in (uid_str, user.email)
+                        or task_rec.follower_id in (uid_str, user.email)
+                        or (user.full_name and user.full_name in (task_rec.assignee_name, task_rec.follower_name))
+                        or task_rec.location == user.location
+                    )
+                    if not (is_mgmt or is_owner):
+                        reply_text = "⛔ شما مجوز اتمام تسک مربوط به واحد یا کاربر دیگر را ندارید."
+                    else:
+                        task_rec.state = "done"
+                        session.add(task_rec)
+                        session.commit()
+                        session.refresh(task_rec)
+                        from app.modules.tasks.routes import notify_users_via_bale
+                        background_tasks.add_task(notify_users_via_bale, task_rec.to_dict(), "done")
+                        reply_text = f"✅ وضعیت دستور کار `{task_rec.id}` با عنوان *{task_rec.title}* با موفقیت به *اتمام یافته (DONE)* تغییر یافت."
                 else:
                     reply_text = f"⚠️ دستور کاری با شناسه `{target_id}` در پایگاه داده مرکزی یافت نشد."
             else:
@@ -572,8 +608,8 @@ async def send_bale_message(token: str, chat_id: int | str, text: str, keyboard:
 
 
 @router.post("/send-notification")
-async def send_bot_notification(msg: BotMessage):
-    """Internal push notifications to connected bot users."""
+async def send_bot_notification(msg: BotMessage, current_user: CurrentUser):
+    """Internal push notifications to connected bot users (authenticated)."""
     bale_token = getattr(settings, "BALE_BOT_TOKEN", None)
     if not bale_token:
         return {"status": "error", "detail": "BALE_BOT_TOKEN not configured"}

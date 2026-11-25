@@ -88,6 +88,14 @@ export const api = {
       const res = await apiClient.post(`/tasks/${id}/restore`)
       return res.data
     },
+    requestExtension: async (id: string, data: { requested_due_date: string; reason?: string }) => {
+      const res = await apiClient.post(`/tasks/${id}/request-extension`, data)
+      return res.data
+    },
+    reviewExtension: async (id: string, action: "approve" | "reject") => {
+      const res = await apiClient.post(`/tasks/${id}/review-extension`, { action })
+      return res.data
+    },
     getTrash: async () => {
       const res = await apiClient.get("/tasks/trash")
       return res.data

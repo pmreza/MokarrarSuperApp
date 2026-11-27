@@ -6,8 +6,13 @@ import {
   AlertTriangle,
   Package,
   History,
+  Warehouse,
   QrCode,
   Search,
+  FileSpreadsheet,
+  FileJson,
+  Upload,
+  Copy,
 } from "lucide-react"
 import { DataTable, type Column } from "@/components/ui/DataTable"
 import { StatusBadge } from "@/components/ui/StatusBadge"
@@ -28,10 +33,40 @@ export const InventoryView: React.FC = () => {
   const [scanInput, setScanInput] = useState("")
   const [scanResult, setScanResult] = useState<any | null>(null)
   const [isScanning, setIsScanning] = useState(false)
+  const [isImportOpen, setIsImportOpen] = useState(false)
+  const [importJsonText, setImportJsonText] = useState("")
+  const [importing, setImporting] = useState(false)
   const [selectedPartId, setSelectedPartId] = useState("")
+
+  const SUGGESTED_JSON_TEMPLATE = JSON.stringify(
+    {
+      items: [
+        {
+          IPN: "MOK-BRG-6205",
+          name: "بلبرینگ شیار عمیق SKF 6205",
+          category_name: "قطعات مکانیکی",
+          total_in_stock: 24,
+          minimum_stock: 6,
+          unit: "عدد",
+          location: "انبار ماهشهر - قفسه B2",
+        },
+        {
+          IPN: "MOK-OIL-46",
+          name: "روغن هیدرولیک صنعتی ISO 46",
+          category_name: "روان‌کارها",
+          total_in_stock: 180,
+          minimum_stock: 40,
+          unit: "لیتر",
+          location: "انبار قزوین - مخزن ۱",
+        },
+      ],
+    },
+    null,
+    2
+  )
   const [quantity, setQuantity] = useState(10)
   const [notes, setNotes] = useState("")
-  const [receiver, setReceiver] = useState("حمید حسینی (انباردار)")
+  const [receiver, setReceiver] = useState("")
 
   const handleScanLookup = async (codeToSearch?: string) => {
     const code = (codeToSearch || scanInput).trim()
@@ -113,6 +148,45 @@ export const InventoryView: React.FC = () => {
     } catch (err) {
       toast.error("خطا در ثبت خروج کالا")
     }
+  }
+
+  const handleCopyTemplate = () => {
+    navigator.clipboard.writeText(SUGGESTED_JSON_TEMPLATE)
+    toast.success("الگوی پیشنهادی JSON در حافظه کپی شد.")
+  }
+
+  const handleImportJson = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      setImporting(true)
+      const parsed = JSON.parse(importJsonText || SUGGESTED_JSON_TEMPLATE)
+      const items = Array.isArray(parsed) ? parsed : parsed.items
+      if (!Array.isArray(items) || items.length === 0) {
+        toast.error("فرمت JSON باید شامل آرایه‌ای از اقلام یا کلید items باشد.")
+        return
+      }
+      const res = await api.inventory.importParts(items)
+      toast.success(
+        `ایمپورت با موفقیت انجام شد: ${res.imported_count} قلم جدید، ${res.updated_count} قلم بروزرسانی.`
+      )
+      setIsImportOpen(false)
+      setImportJsonText("")
+      loadData()
+    } catch (err: any) {
+      toast.error(err instanceof SyntaxError ? "ساختار JSON واردشده معتبر نیست." : "خطا در ایمپورت اطلاعات انبار")
+    } finally {
+      setImporting(false)
+    }
+  }
+
+  const handleJsonFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      setImportJsonText(String(ev.target?.result || ""))
+    }
+    reader.readAsText(file)
   }
 
   const partColumns: Column<any>[] = [
@@ -214,26 +288,31 @@ export const InventoryView: React.FC = () => {
   return (
     <div className="space-y-5" dir="rtl">
       {/* Top Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-bold text-slate-900">انبارداری و کنترل موجودی قطعات (Phase 3)</h2>
-            <span className="text-[10px] px-2 py-0.5 bg-emerald-100 text-emerald-800 font-bold rounded-md font-mono">
-              InvenTree Engine
+      <div className="bg-white rounded-2xl border border-zinc-200/90 p-5 shadow-xs card-interactive animate-slide-up flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="p-1.5 rounded-lg bg-[#062434] text-white flex items-center justify-center shadow-xs">
+              <Warehouse className="w-5 h-5 text-orange-400" />
+            </span>
+            <h1 className="text-base sm:text-lg font-black text-zinc-900 tracking-tight">
+              انبار و کاردکس مکانیزه کالا و قطعات یدکی
+            </h1>
+            <span className="px-2.5 py-0.5 rounded-full font-bold text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200">
+              موتور InvenTree • فاز ۳
             </span>
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">
-            کاردکس کالا • ردیابی شماره بچ و انبارش • ورود خودکار پس از تحویل تسک‌های خرید
+          <p className="text-xs text-zinc-500">
+            کاردکس لحظه‌ای کالا • ردیابی انبار پای کار و انبار مرکزی ملارد • اتصال خودکار به زنجیره خرید و تسک‌های Plane
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Tab Switch */}
-          <div className="flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200/70">
+          <div className="flex items-center p-1 bg-zinc-100 rounded-xl border border-zinc-200/80">
             <button
               onClick={() => setActiveTab("catalog")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === "catalog" ? "bg-white text-emerald-700 shadow-xs" : "text-slate-600"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                activeTab === "catalog" ? "bg-white text-orange-600 shadow-2xs" : "text-zinc-600 hover:text-zinc-900"
               }`}
             >
               <Package className="w-3.5 h-3.5" />
@@ -241,8 +320,8 @@ export const InventoryView: React.FC = () => {
             </button>
             <button
               onClick={() => setActiveTab("history")}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                activeTab === "history" ? "bg-white text-emerald-700 shadow-xs" : "text-slate-600"
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                activeTab === "history" ? "bg-white text-orange-600 shadow-2xs" : "text-zinc-600 hover:text-zinc-900"
               }`}
             >
               <History className="w-3.5 h-3.5" />
@@ -252,9 +331,21 @@ export const InventoryView: React.FC = () => {
 
           <button
             onClick={loadData}
-            className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 border border-slate-200 rounded-xl transition-colors cursor-pointer"
+            className="p-2 text-zinc-500 hover:text-zinc-800 hover:bg-zinc-100 border border-zinc-200 rounded-xl transition-colors cursor-pointer"
+            title="بروزرسانی داده‌ها"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-emerald-600" : ""}`} />
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-orange-600" : ""}`} />
+          </button>
+
+          <button
+            onClick={() => {
+              if (!importJsonText) setImportJsonText(SUGGESTED_JSON_TEMPLATE)
+              setIsImportOpen(true)
+            }}
+            className="h-9 px-3 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 border border-zinc-200 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+          >
+            <FileJson className="w-4 h-4 text-orange-600" />
+            <span>ایمپورت و راهنمای JSON</span>
           </button>
 
           <button
@@ -271,7 +362,7 @@ export const InventoryView: React.FC = () => {
 
           <button
             onClick={() => setIsStockInOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
+            className="h-9 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>رسید ورود کالا</span>
@@ -279,7 +370,7 @@ export const InventoryView: React.FC = () => {
 
           <button
             onClick={() => setIsStockOutOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-md shadow-amber-500/20 transition-all cursor-pointer"
+            className="h-9 px-3.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
           >
             <Minus className="w-4 h-4" />
             <span>حواله خروج کالا</span>
@@ -596,6 +687,67 @@ export const InventoryView: React.FC = () => {
             </div>
           )}
         </div>
+      </Modal>
+
+      {/* JSON IMPORT & DOCUMENTATION MODAL */}
+      <Modal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        title="مستندات و ایمپورت گروهی انبار (JSON)"
+        maxWidth="lg"
+      >
+        <form onSubmit={handleImportJson} className="space-y-4 text-right" dir="rtl">
+          <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200 text-xs text-blue-900 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-bold">راهنمای ساختار پیشنهادی JSON برای آپدیت و ورود کالا:</span>
+              <button
+                type="button"
+                onClick={handleCopyTemplate}
+                className="px-2.5 py-1 rounded-lg bg-white border border-blue-200 text-blue-700 hover:bg-blue-100 text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>کپی الگو</span>
+              </button>
+            </div>
+            <p className="text-[11px] text-blue-800 leading-relaxed">
+              هر قلم بر اساس کد یکتای <code className="font-mono font-bold">IPN</code> بررسی می‌شود؛ اگر کد قبلاً موجود باشد موجودی آن بروزرسانی و در غیر این صورت به‌عنوان کالای جدید ثبت می‌گردد.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <label className="text-xs font-bold text-slate-700">محتوای JSON یا انتخاب فایل:</label>
+            <label className="px-3 py-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 text-xs font-semibold text-zinc-700 flex items-center gap-1.5 cursor-pointer">
+              <Upload className="w-3.5 h-3.5 text-orange-600" />
+              <span>انتخاب فایل JSON.</span>
+              <input type="file" accept=".json,application/json" onChange={handleJsonFileUpload} className="hidden" />
+            </label>
+          </div>
+
+          <textarea
+            rows={10}
+            dir="ltr"
+            value={importJsonText}
+            onChange={(e) => setImportJsonText(e.target.value)}
+            className="w-full p-3 text-xs font-mono bg-zinc-950 text-emerald-300 border border-zinc-800 rounded-xl focus:outline-hidden"
+          />
+
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setIsImportOpen(false)}
+              className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg cursor-pointer"
+            >
+              انصراف
+            </button>
+            <button
+              type="submit"
+              disabled={importing}
+              className="px-5 py-2 text-xs font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-sm cursor-pointer"
+            >
+              {importing ? "در حال ایمپورت..." : "ایمپورت و بروزرسانی انبار"}
+            </button>
+          </div>
+        </form>
       </Modal>
     </div>
   )

@@ -6,7 +6,11 @@ import {
 } from "@tanstack/react-router"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
+import { User, Lock, UserPlus, ArrowRight, ShieldCheck } from "lucide-react"
+
+import type { UserRegister } from "@/client"
 import { AuthLayout } from "@/components/Common/AuthLayout"
+import { MokarrarLogo } from "@/components/ui/MokarrarLogo"
 import {
   Form,
   FormControl,
@@ -22,18 +26,20 @@ import useAuth, { isLoggedIn } from "@/hooks/useAuth"
 
 const formSchema = z
   .object({
-    email: z.email({ message: "Invalid email address" }),
-    full_name: z.string().min(1, { message: "Full Name is required" }),
+    full_name: z.string().min(2, { message: "نام و نام خانوادگی الزامی است" }),
+    email: z
+      .string()
+      .min(3, { message: "نام کاربری / شناسه پرسنلی حداقل ۳ کاراکتر است" }),
     password: z
       .string()
-      .min(1, { message: "Password is required" })
-      .min(8, { message: "Password must be at least 8 characters" }),
+      .min(1, { message: "رمز عبور الزامی است" })
+      .min(6, { message: "حداقل طول رمز عبور ۶ کاراکتر است" }),
     confirm_password: z
       .string()
-      .min(1, { message: "Password confirmation is required" }),
+      .min(1, { message: "تکرار رمز عبور الزامی است" }),
   })
   .refine((data) => data.password === data.confirm_password, {
-    message: "The passwords don't match",
+    message: "رمز عبور و تکرار آن یکسان نیستند",
     path: ["confirm_password"],
   })
 
@@ -42,16 +48,14 @@ type FormData = z.infer<typeof formSchema>
 export const Route = createFileRoute("/signup")({
   component: SignUp,
   beforeLoad: async () => {
-    if (isLoggedIn()) {
-      throw redirect({
-        to: "/",
-      })
-    }
+    throw redirect({
+      to: "/login",
+    })
   },
   head: () => ({
     meta: [
       {
-        title: "Sign Up - FastAPI Template",
+        title: "ثبت‌نام کاربر جدید | مکرر",
       },
     ],
   }),
@@ -64,8 +68,8 @@ function SignUp() {
     mode: "onBlur",
     criteriaMode: "all",
     defaultValues: {
-      email: "",
       full_name: "",
+      email: "",
       password: "",
       confirm_password: "",
     },
@@ -73,39 +77,48 @@ function SignUp() {
 
   const onSubmit = (data: FormData) => {
     if (signUpMutation.isPending) return
-
-    // exclude confirm_password from submission data
-    const { confirm_password: _confirm_password, ...submitData } = data
-    signUpMutation.mutate(submitData)
+    const payload: UserRegister = {
+      email: data.email.trim(),
+      password: data.password.trim(),
+      full_name: data.full_name.trim(),
+    }
+    signUpMutation.mutate(payload)
   }
 
   return (
     <AuthLayout>
-      <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit(onSubmit)}
-          className="flex flex-col gap-6"
-        >
-          <div className="flex flex-col items-center gap-2 text-center">
-            <h1 className="text-2xl font-bold">Create an account</h1>
-          </div>
+      <div className="bg-white/95 backdrop-blur-xl p-8 sm:p-10 rounded-3xl border border-zinc-200/90 shadow-xl shadow-zinc-900/5 transition-all">
+        {/* Brand Header */}
+        <div className="flex flex-col items-center gap-2 text-center mb-6">
+          <MokarrarLogo variant="dark" size="lg" showSubtitle={false} />
+          <h1 className="text-sm font-bold text-zinc-800 mt-2">
+            ثبت‌نام پرسنل جدید
+          </h1>
+        </div>
 
-          <div className="grid gap-4">
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="flex flex-col gap-3.5"
+            dir="rtl"
+          >
             <FormField
               control={form.control}
               name="full_name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Full Name</FormLabel>
+                  <FormLabel className="text-xs font-semibold text-zinc-700">نام و نام خانوادگی</FormLabel>
                   <FormControl>
-                    <Input
-                      data-testid="full-name-input"
-                      placeholder="User"
-                      type="text"
-                      {...field}
-                    />
+                    <div className="relative">
+                      <Input
+                        placeholder="مثال: علی احمدی"
+                        className="text-right text-xs pr-9 pl-3 h-10 rounded-xl bg-zinc-50 border-zinc-200"
+                        {...field}
+                      />
+                      <User className="w-4 h-4 text-zinc-400 absolute right-3 top-3 pointer-events-none" />
+                    </div>
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-xs" />
                 </FormItem>
               )}
             />
@@ -115,16 +128,18 @@ function SignUp() {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel className="text-xs font-semibold text-zinc-700">نام کاربری / شناسه پرسنلی</FormLabel>
                   <FormControl>
-                    <Input
-                      data-testid="email-input"
-                      placeholder="user@example.com"
-                      type="email"
-                      {...field}
-                    />
+                    <div className="relative">
+                      <Input
+                        placeholder="مثال: ahmadi یا ahmadi@mokarrar.ir"
+                        className="text-right text-xs pr-9 pl-3 h-10 rounded-xl bg-zinc-50 border-zinc-200"
+                        {...field}
+                      />
+                      <ShieldCheck className="w-4 h-4 text-zinc-400 absolute right-3 top-3 pointer-events-none" />
+                    </div>
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-xs" />
                 </FormItem>
               )}
             />
@@ -134,15 +149,18 @@ function SignUp() {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel className="text-xs font-semibold text-zinc-700">رمز عبور</FormLabel>
                   <FormControl>
-                    <PasswordInput
-                      data-testid="password-input"
-                      placeholder="Password"
-                      {...field}
-                    />
+                    <div className="relative">
+                      <PasswordInput
+                        placeholder="حداقل ۶ کاراکتر"
+                        className="text-right text-xs pr-9 pl-3 h-10 rounded-xl bg-zinc-50 border-zinc-200 font-mono"
+                        {...field}
+                      />
+                      <Lock className="w-4 h-4 text-zinc-400 absolute right-3 top-3 pointer-events-none" />
+                    </div>
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-xs" />
                 </FormItem>
               )}
             />
@@ -152,36 +170,46 @@ function SignUp() {
               name="confirm_password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Confirm Password</FormLabel>
+                  <FormLabel className="text-xs font-semibold text-zinc-700">تکرار رمز عبور</FormLabel>
                   <FormControl>
-                    <PasswordInput
-                      data-testid="confirm-password-input"
-                      placeholder="Confirm Password"
-                      {...field}
-                    />
+                    <div className="relative">
+                      <PasswordInput
+                        placeholder="تکرار دقیق رمز عبور"
+                        className="text-right text-xs pr-9 pl-3 h-10 rounded-xl bg-zinc-50 border-zinc-200 font-mono"
+                        {...field}
+                      />
+                      <Lock className="w-4 h-4 text-zinc-400 absolute right-3 top-3 pointer-events-none" />
+                    </div>
                   </FormControl>
-                  <FormMessage />
+                  <FormMessage className="text-xs" />
                 </FormItem>
               )}
             />
 
             <LoadingButton
               type="submit"
-              className="w-full"
               loading={signUpMutation.isPending}
+              className="bg-orange-500 hover:bg-orange-600 text-white h-10 rounded-xl text-xs font-bold shadow-xs transition-all mt-2 cursor-pointer"
             >
-              Sign Up
+              <UserPlus className="w-4 h-4 ml-1.5" />
+              ثبت‌نام و ایجاد حساب
             </LoadingButton>
-          </div>
 
-          <div className="text-center text-sm">
-            Already have an account?{" "}
-            <RouterLink to="/login" className="underline underline-offset-4">
-              Log in
-            </RouterLink>
-          </div>
-        </form>
-      </Form>
+            {/* Back to Login Link */}
+            <div className="mt-2 pt-4 border-t border-zinc-100 flex items-center justify-between text-xs">
+              <span className="text-zinc-500">قبلاً حساب داشته‌اید؟</span>
+              <RouterLink
+                to="/login"
+                className="font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1 transition-colors"
+              >
+                <span>ورود به سامانه</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </RouterLink>
+            </div>
+          </form>
+        </Form>
+      </div>
     </AuthLayout>
   )
 }
+export default SignUp

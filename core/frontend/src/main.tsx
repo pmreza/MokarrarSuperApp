@@ -13,16 +13,17 @@ import { ThemeProvider } from "./components/theme-provider"
 import { Toaster } from "./components/ui/sonner"
 import "./index.css"
 import { routeTree } from "./routeTree.gen"
+import { getApiBaseUrl } from "./services/api"
 
 client.setConfig({
-  baseURL: import.meta.env.VITE_API_URL ?? "",
+  baseURL: getApiBaseUrl(),
   auth: () => localStorage.getItem("access_token") || "",
 })
 
 const handleApiError = (error: Error) => {
   if (
     error instanceof AxiosError &&
-    [401, 403].includes(error.response?.status ?? 0)
+    error.response?.status === 401
   ) {
     localStorage.removeItem("access_token")
     window.location.href = "/login"

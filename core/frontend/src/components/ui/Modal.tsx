@@ -46,25 +46,28 @@ export const Modal: React.FC<ModalProps> = ({
   }[effectiveSize]
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-sm transition-opacity duration-300 animate-fade-in"
+      onClick={onClose}
+    >
       <div
-        className={`w-full ${maxWidthClasses} bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden text-right`}
+        className={`w-full ${maxWidthClasses} max-h-[88dvh] flex flex-col bg-white rounded-3xl shadow-2xl border border-zinc-200/90 overflow-hidden text-right transform transition-all duration-300 animate-scale-in`}
         dir="rtl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/50">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-zinc-100 bg-zinc-50/70 shrink-0">
           <div>
-            <h3 className="text-lg font-bold text-slate-900">{title}</h3>
-            {description && <p className="text-xs text-slate-500 mt-0.5">{description}</p>}
+            <h3 className="text-base sm:text-lg font-bold text-zinc-900">{title}</h3>
+            {description && <p className="text-xs text-zinc-500 mt-0.5">{description}</p>}
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+            className="p-2 text-zinc-400 hover:text-zinc-700 rounded-xl hover:bg-zinc-100 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="p-6 max-h-[80vh] overflow-y-auto">{children}</div>
+        <div className="p-4 sm:p-6 overflow-y-auto">{children}</div>
       </div>
     </div>
   )

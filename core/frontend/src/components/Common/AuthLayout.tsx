@@ -1,6 +1,4 @@
-import { Appearance } from "@/components/Common/Appearance"
-import { Logo } from "@/components/Common/Logo"
-import { Footer } from "./Footer"
+import React from "react"
 
 interface AuthLayoutProps {
   children: React.ReactNode
@@ -8,18 +6,18 @@ interface AuthLayoutProps {
 
 export function AuthLayout({ children }: AuthLayoutProps) {
   return (
-    <div className="grid min-h-svh lg:grid-cols-2">
-      <div className="bg-muted dark:bg-zinc-900 relative hidden lg:flex lg:items-center lg:justify-center">
-        <Logo variant="full" className="h-16" asLink={false} />
-      </div>
-      <div className="flex flex-col gap-4 p-6 md:p-10">
-        <div className="flex justify-end">
-          <Appearance />
-        </div>
-        <div className="flex flex-1 items-center justify-center">
-          <div className="w-full max-w-xs">{children}</div>
-        </div>
-        <Footer />
+    <div
+      className="relative min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8 bg-zinc-100/70 overflow-hidden"
+      dir="rtl"
+    >
+      {/* Ambient background decoration */}
+      <div className="absolute inset-0 bg-[radial-gradient(#e4e4e7_1px,transparent_1px)] [background-size:24px_24px] opacity-75 pointer-events-none" />
+      <div className="absolute -top-32 -right-32 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+      {/* Centered Auth Card Viewport */}
+      <div className="relative z-10 w-full max-w-md">
+        {children}
       </div>
     </div>
   )

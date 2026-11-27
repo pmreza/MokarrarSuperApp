@@ -1,15 +1,28 @@
 import axios from "axios"
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000"
+export const getApiBaseUrl = (): string => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL.replace(/\/+$/, "")
+  }
+  if (typeof window !== "undefined") {
+    if (window.location.hostname.includes("onrender.com")) {
+      return "https://mokarrar-backend.onrender.com"
+    }
+  }
+  return "http://localhost:8000"
+}
+
+const BASE_URL = getApiBaseUrl()
 
 export const apiClient = axios.create({
   baseURL: `${BASE_URL}/api/v1`,
   headers: {
     "Content-Type": "application/json",
   },
+  timeout: 30000,
 })
 
-// Attach Bearer token to all requests
+// Attach Bearer token to all requests if present
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem("access_token")
   if (token) {
@@ -18,13 +31,15 @@ apiClient.interceptors.request.use((config) => {
   return config
 })
 
-// Handle response errors
+// Handle response errors & 401 unauthorized
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && !window.location.pathname.includes("/login")) {
-      localStorage.removeItem("access_token")
-      window.location.href = "/login"
+    if (error.response?.status === 401 && typeof window !== "undefined") {
+      if (!window.location.pathname.includes("/login")) {
+        localStorage.removeItem("access_token")
+        window.location.href = "/login"
+      }
     }
     return Promise.reject(error)
   }
@@ -37,7 +52,7 @@ apiClient.interceptors.response.use(
 export const api = {
   // Tasks (Plane Proxy)
   tasks: {
-    list: async (params?: { state?: string; search?: string }) => {
+    list: async (params?: { state?: string; search?: string; location?: string }) => {
       const res = await apiClient.get("/tasks/", { params })
       return res.data
     },
@@ -51,6 +66,10 @@ export const api = {
       priority?: string
       state?: string
       assignee_name?: string
+      assignee_id?: string
+      follower_name?: string
+      follower_id?: string
+      location?: string
       due_date?: string
       tags?: string[]
     }) => {
@@ -61,8 +80,24 @@ export const api = {
       const res = await apiClient.patch(`/tasks/${id}`, updates)
       return res.data
     },
-    delete: async (id: string) => {
-      const res = await apiClient.delete(`/tasks/${id}`)
+    delete: async (id: string, permanent: boolean = false) => {
+      const res = await apiClient.delete(`/tasks/${id}`, { params: { permanent } })
+      return res.data
+    },
+    restore: async (id: string) => {
+      const res = await apiClient.post(`/tasks/${id}/restore`)
+      return res.data
+    },
+    requestExtension: async (id: string, data: { requested_due_date: string; reason?: string }) => {
+      const res = await apiClient.post(`/tasks/${id}/request-extension`, data)
+      return res.data
+    },
+    reviewExtension: async (id: string, action: "approve" | "reject") => {
+      const res = await apiClient.post(`/tasks/${id}/review-extension`, { action })
+      return res.data
+    },
+    getTrash: async () => {
+      const res = await apiClient.get("/tasks/trash")
       return res.data
     },
     getStates: async () => {
@@ -161,6 +196,14 @@ export const api = {
       const res = await apiClient.get(`/inventory/scan/${encodeURIComponent(code)}`)
       return res.data
     },
+    getImportTemplate: async () => {
+      const res = await apiClient.get("/inventory/import-template")
+      return res.data
+    },
+    importParts: async (items: Array<Record<string, any>>) => {
+      const res = await apiClient.post("/inventory/import", { items })
+      return res.data
+    },
   },
 
   // Dashboard Executive KPIs
@@ -246,6 +289,48 @@ export const api = {
     },
     sendNotification: async (chat_id: string | number, text: string) => {
       const res = await apiClient.post("/bots/bale/send", { chat_id, text })
+      return res.data
+    },
+  },
+
+  // User & Permission Management (RBAC)
+  users: {
+    list: async (skip: number = 0, limit: number = 100) => {
+      const res = await apiClient.get("/users/", { params: { skip, limit } })
+      return res.data
+    },
+    getRolesMetadata: async () => {
+      const res = await apiClient.get("/users/roles/metadata")
+      return res.data
+    },
+    create: async (data: {
+      email: string
+      full_name?: string
+      phone_number?: string
+      bale_chat_id?: string
+      password: string
+      role?: string
+      location?: string
+      permissions?: string
+      is_active?: boolean
+      is_superuser?: boolean
+    }) => {
+      const res = await apiClient.post("/users/", data)
+      return res.data
+    },
+    update: async (userId: string, data: Record<string, any>) => {
+      const res = await apiClient.patch(`/users/${userId}`, data)
+      return res.data
+    },
+    delete: async (userId: string) => {
+      const res = await apiClient.delete(`/users/${userId}`)
+      return res.data
+    },
+    updatePasswordMe: async (currentPassword: string, newPassword: string) => {
+      const res = await apiClient.patch("/users/me/password", {
+        current_password: currentPassword,
+        new_password: newPassword,
+      })
       return res.data
     },
   },

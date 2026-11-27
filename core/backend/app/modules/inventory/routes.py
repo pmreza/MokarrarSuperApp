@@ -24,6 +24,20 @@ class StockOutRequest(BaseModel):
     notes: str = ""
 
 
+class InventoryImportItem(BaseModel):
+    IPN: str = Field(..., description="کد یکتای قطعه یا کالا")
+    name: str = Field(..., description="نام قطعه یا ماده اولیه")
+    category_name: str = Field(default="قطعات فنی", description="دسته‌بندی")
+    total_in_stock: float = Field(default=0, ge=0, description="موجودی فعلی")
+    minimum_stock: float = Field(default=5, ge=0, description="حداقل موجودی مجاز (نقطه سفارش)")
+    unit: str = Field(default="عدد", description="واحد اندازه‌گیری")
+    location: str = Field(default="انبار مرکزی", description="محل نگهداری")
+
+
+class InventoryImportRequest(BaseModel):
+    items: list[InventoryImportItem]
+
+
 @router.get("/parts")
 async def list_parts(
     current_user: CurrentUser,
@@ -122,3 +136,49 @@ async def get_inventory_kpis(current_user: CurrentUser) -> dict[str, Any]:
         "low_stock_alert_count": len(low_stock_parts),
         "low_stock_items": low_stock_parts,
     }
+
+
+@router.get("/import-template")
+async def get_inventory_import_template(current_user: CurrentUser) -> dict[str, Any]:
+    """Return suggested JSON schema and sample payload for bulk inventory import/update."""
+    return {
+        "description": "الگوی استاندارد JSON برای ایمپورت یا بروزرسانی موجودی انبار (بر اساس کد یکتای IPN)",
+        "fields": [
+            {"key": "IPN", "type": "string", "required": True, "desc": "کد یکتای قطعه (برای بروزرسانی خودکار)"},
+            {"key": "name", "type": "string", "required": True, "desc": "نام کامل قطعه یا ماده اولیه"},
+            {"key": "category_name", "type": "string", "required": False, "desc": "دسته‌بندی کالا"},
+            {"key": "total_in_stock", "type": "number", "required": True, "desc": "موجودی فعلی در انبار"},
+            {"key": "minimum_stock", "type": "number", "required": False, "desc": "حد هشدار کسری انبار"},
+            {"key": "unit", "type": "string", "required": False, "desc": "واحد (عدد، لیتر، کیلوگرم، متر...)"},
+            {"key": "location", "type": "string", "required": False, "desc": "انبار / قفسه محل نگهداری"},
+        ],
+        "sample": {
+            "items": [
+                {
+                    "IPN": "MOK-BRG-6205",
+                    "name": "بلبرینگ شیار عمیق SKF 6205",
+                    "category_name": "قطعات مکانیکی",
+                    "total_in_stock": 24,
+                    "minimum_stock": 6,
+                    "unit": "عدد",
+                    "location": "انبار ماهشهر - قفسه B2",
+                },
+                {
+                    "IPN": "MOK-OIL-46",
+                    "name": "روغن هیدرولیک صنعتی ISO 46",
+                    "category_name": "روان‌کارها",
+                    "total_in_stock": 180,
+                    "minimum_stock": 40,
+                    "unit": "لیتر",
+                    "location": "انبار قزوین - مخزن ۱",
+                },
+            ]
+        },
+    }
+
+
+@router.post("/import", status_code=status.HTTP_201_CREATED)
+async def import_inventory_parts(req: InventoryImportRequest, current_user: WarehouseUser) -> dict[str, Any]:
+    """Bulk import or update inventory items from JSON payload."""
+    items_dicts = [item.model_dump() for item in req.items]
+    return await inventree_adapter.import_parts(items_dicts)

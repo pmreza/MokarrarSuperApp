@@ -40,3 +40,7 @@ yarn-error.log*
 # Upstream documentation media assets
 services/inventree/docs/
 
+# Database files
+*.db
+*.sqlite
+*.sqlite3

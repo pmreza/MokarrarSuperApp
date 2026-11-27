@@ -1,0 +1,80 @@
+import json
+from datetime import UTC, datetime
+from typing import Any
+from sqlmodel import Field, SQLModel
+
+
+class TaskRecord(SQLModel, table=True):
+    __tablename__ = "task_records"
+
+    id: str = Field(primary_key=True)
+    title: str = Field(max_length=255)
+    description: str = Field(default="")
+    state: str = Field(default="todo", max_length=50)
+    priority: str = Field(default="medium", max_length=50)
+    assignee_name: str = Field(default="تخصیص‌نیافته", max_length=255)
+    assignee_id: str = Field(default="unassigned", max_length=100)
+    follower_name: str = Field(default="", max_length=255)
+    follower_id: str = Field(default="", max_length=100)
+    location: str = Field(default="central_office", max_length=100)
+    due_date: str = Field(default="1405/04/01", max_length=50)
+    created_at: str = Field(default="")
+    tags: str = Field(default="[]")
+    is_deleted: bool = Field(default=False)
+    deleted_at: str = Field(default="")
+    requested_due_date: str | None = Field(default=None, max_length=50)
+    extension_reason: str | None = Field(default=None, max_length=1000)
+    extension_status: str | None = Field(default=None, max_length=50)
+    extension_requested_by: str | None = Field(default=None, max_length=255)
+    extension_requested_at: str | None = Field(default=None, max_length=100)
+    metadata_json: str = Field(default="{}")
+    comments_json: str = Field(default="[]")
+
+    def to_dict(self) -> dict[str, Any]:
+        try:
+            parsed_tags = json.loads(self.tags) if self.tags else []
+        except Exception:
+            parsed_tags = []
+
+        try:
+            parsed_metadata = json.loads(self.metadata_json) if self.metadata_json else {}
+        except Exception:
+            parsed_metadata = {}
+
+        try:
+            parsed_comments = json.loads(self.comments_json) if self.comments_json else []
+        except Exception:
+            parsed_comments = []
+
+        location_map = {
+            "central_office": "دفتر مرکزی",
+            "mahshahr_plant": "کارخانه ماهشهر",
+            "qazvin_plant": "کارخانه قزوین",
+        }
+        loc = getattr(self, "location", "central_office") or "central_office"
+
+        return {
+            "id": self.id,
+            "title": self.title,
+            "description": self.description,
+            "state": self.state,
+            "priority": self.priority,
+            "assignee_name": self.assignee_name,
+            "assignee_id": self.assignee_id,
+            "follower_name": getattr(self, "follower_name", "") or "",
+            "follower_id": getattr(self, "follower_id", "") or "",
+            "location": loc,
+            "location_title": location_map.get(loc, loc),
+            "due_date": self.due_date,
+            "created_at": self.created_at or datetime.now(UTC).isoformat(),
+            "tags": parsed_tags,
+            "is_deleted": bool(getattr(self, "is_deleted", False)),
+            "deleted_at": getattr(self, "deleted_at", "") or "",
+            "requested_due_date": getattr(self, "requested_due_date", None),
+            "extension_reason": getattr(self, "extension_reason", None),
+            "extension_status": getattr(self, "extension_status", None),
+            "extension_requested_by": getattr(self, "extension_requested_by", None),
+            "extension_requested_at": getattr(self, "extension_requested_at", None),
+            "metadata": parsed_metadata,
+            "comments": parsed_comments,
+        }

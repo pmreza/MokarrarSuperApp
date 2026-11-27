@@ -17,7 +17,7 @@ def run_tests():
     # 2. Login to get token
     token = None
     try:
-        data = urllib.parse.urlencode({'username': 'admin@mokarrar.com', 'password': 'MokarrarAdmin2026!'}).encode()
+        data = urllib.parse.urlencode({'username': 'admin@mokarrar.com', 'password': 'qazwsxedc'}).encode()
         req = urllib.request.Request(f'{BASE}/login/access-token', data=data, headers={'Content-Type': 'application/x-www-form-urlencoded'})
         with urllib.request.urlopen(req) as resp:
             res_json = json.loads(resp.read().decode())

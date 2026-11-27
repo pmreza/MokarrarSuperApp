@@ -9,7 +9,7 @@ def test_rbac():
     
     # 1. Test Preset Logins
     test_accounts = [
-        ("admin@mokarrar.com", "MokarrarAdmin2026!", "Admin / Dev"),
+        ("admin@mokarrar.com", "qazwsxedc", "Admin / Dev"),
         ("ceo", "MokarrarCeo2026!", "Managing Director (CEO)"),
         ("supervisor", "MokarrarLine2026!", "Line Supervisor"),
         ("warehouse", "MokarrarStore2026!", "Warehouse Manager"),
